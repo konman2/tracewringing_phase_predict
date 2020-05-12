@@ -108,9 +108,8 @@ def run(trace_name, trace_type, trace_id, thres, gap, length, blocksize, fp, clu
 
     if os.path.exists(hm_path):
         with open(hm_path,'rb') as f:
-            print(hm_path)
             hm_matrix = pickle.load(f)
-
+            
     else:
         hm_matrix = generate_heatmap(wl_path, height, window_size, hm_path)
     
@@ -118,7 +117,7 @@ def run(trace_name, trace_type, trace_id, thres, gap, length, blocksize, fp, clu
     
     cl = Clustering()
     labels, _ = cl.kmeans(clusters,collapse_factor,heatmap_fig)
-    print(labels[:1000])
+    np.savetxt('{}.phases'.format(trace_name),labels,fmt='%d')
     label_rle = encodeRLE(labels, collapse_factor)
     #print(label_rle)
     with open(cluster_path, 'wb') as f:

@@ -25,7 +25,7 @@ TYPE = 'mem'
 ID = '1'
 
 # WINDOW_SIZE = 10000
-WINDOW_SIZE = 10
+WINDOW_SIZE = 100
 HEIGHT = 2048
 COLLAPSE_FACTOR = 1
 
@@ -96,7 +96,6 @@ def error(init_params):
 
     else:
         param_id, bits, mr, abs_err, rel_err = run(NAME, TYPE, ID, thres, gap, length, blocksize, fp, clusters, WINDOW_SIZE, HEIGHT, COLLAPSE_FACTOR)
-        print("here")
         df_temp = pd.DataFrame([[param_id, bits, mr, abs_err, rel_err]],columns=cols)
         df = df.append(df_temp, ignore_index=True)
         df.to_csv(sweep_path)

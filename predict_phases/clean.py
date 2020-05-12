@@ -60,6 +60,7 @@ print('Total Sequences: %d' % len(sequences))
 sequences = np.array(sequences)
 shuffle(np.array(sequences))
 lines = []
+
 for i in sequences:
 	lines.append(' '.join(i))
 
