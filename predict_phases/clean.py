@@ -1,16 +1,15 @@
 import string
 import numpy as np
 from numpy.random import shuffle
-file = "gcc-1B"
+import sys
+import gen
+
+
 # load doc into memory
 def load_doc(filename):
-	# open the file as read only
 	file = open(filename, 'r')
-	# read all text
 	text = file.readlines()
-	# close the file
 	file.close()
-	#print(text)
 	return text
  
 # # turn a doc into clean tokens
@@ -21,44 +20,50 @@ def load_doc(filename):
 # 	return tokens
 # 	#return tokens[:train_range],tokens[train_range:train_range+(len(tokens)-train_range)//2],tokens[train_range+(len(tokens)-train_range)//2:]
  
-# # save tokens to file, one dialog per line
 def save_doc(lines, filename):
 	data = '\n'.join(lines)
 	file = open(filename, 'w')
 	file.write(data)
 	file.close()
  
-# load document
-in_filename = '../'+file+'.phases'
-doc = load_doc(in_filename)
+def gen_sequences(file,sequences):
+	in_filename = file+'.phases'
+	doc = load_doc(in_filename)
 
-tokens = [i.split(' ')[0][0] for i in doc]
+	tokens = [i.split(' ')[0][0] for i in doc]
 
-print(tokens[:200])
-print('Total Tokens: %d' % len(tokens))
-print('Unique Tokens: %d' % len(set(tokens)))
+	print(tokens[:200])
+	print('Total Tokens: %d' % len(tokens))
+	print('Unique Tokens: %d' % len(set(tokens)))
 
-# # organize into sequences of tokens
-length = 15
-length+=1
-sequences = list()
+	# # organize into sequences of tokens
+	length = 30
+	length+=1
+	#sequences = []
+	curr_seq = []
+	for i in range(length, len(tokens)):
+		seq = tokens[i-length:i]
+		curr_seq.append(seq)
+		sequences.append(seq)
+	print('Total Sequences: %d' % len(curr_seq))
 
-for i in range(length, len(tokens)):
-	seq = tokens[i-length:i]
-	# if tokens[i][2] == '5':
-	# 	seq[-1] = 0
-	# elif tokens[i][2] == '7':
-	# 	seq[-1] = 1
-	# else:
-	# 	print("oof")
-	#line = ' '.join(seq)
-	sequences.append(seq)
-print('Total Sequences: %d' % len(sequences))
+	return sequences
 
-# save sequences to file
 
+files = gen.names
+train_p = 80
+if len(sys.argv) > 1:
+	files = [sys.argv[1]]
+	train_p =100
+sequences = []
+print(files)
+for file in files:
+	gen_sequences(file,sequences)
+
+print(len(sequences),len(files))
 sequences = np.array(sequences)
-shuffle(np.array(sequences))
+print(sequences.shape)
+shuffle(sequences)
 lines = []
 
 for i in sequences:
@@ -66,9 +71,13 @@ for i in sequences:
 
 
 #print(lines)
-train_p = 80
+name = files[0]
+if len(files) > 1:
+	name = "group"
 train_range = (len(sequences)*train_p) // 100
-out_filename = file+'_seq.txt'
+out_filename = name+'_seq.txt'
 save_doc(lines[:train_range], out_filename)
-save_doc(lines[train_range:train_range+(len(sequences)-train_range)//2],file+'_val.txt')
-save_doc(lines[train_range+(len(sequences)-train_range)//2:],file+"_test.txt")
+if train_p < 100:
+	save_doc(lines[train_range:],name+'_val.txt')
+#save_doc(lines[train_range:train_range+(len(sequences)-train_range)//2],file+'_val.txt')
+#save_doc(lines[train_range+(len(sequences)-train_range)//2:],file+"_test.txt")

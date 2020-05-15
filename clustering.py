@@ -46,7 +46,7 @@ class Clustering(object):
         reduced_heatmap = collapseHeatmap(heatmap_matrix,collapse_factor)
         cluster = KMeans(n_clusters=k,random_state=0).fit(reduced_heatmap.T)
         #print(cluster.labels_)
-        return cluster.labels_, cluster.cluster_centers_,cluster
+        return cluster.labels_, cluster.cluster_centers_,cluster,reduced_heatmap.T
 
     def getClusterFigure(self, labels, heatmap_matrix, collapse_factor, trace_height, name, save=False, fname=None):
         """ Plots Figure 4(a) (clusters) in paper.

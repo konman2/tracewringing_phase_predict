@@ -6,7 +6,7 @@ class TraceGen(nn.Module):
         super(TraceGen,self).__init__()
         self.embeddings = nn.Embedding(vocab_size,embedding_dim)
         #self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
-        self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=1,batch_first=True)
+        self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
         # self.dense1 = nn.Linear(hidden_dim,hidden_dim)
         self.dense2 = nn.Linear(hidden_dim,vocab_size)
 

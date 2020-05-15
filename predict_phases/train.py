@@ -8,6 +8,8 @@ import string
 import pickle
 import time
 from net import TraceGen
+from gen import k
+import sys
 dev = ""
 if torch.cuda.is_available():
     dev="cuda:0"
@@ -24,29 +26,18 @@ def load_doc(filename):
 	return text
 
 # load
-name = "gcc-1B"
+name = sys.argv[1]
 in_filename = name+'_seq.txt'
-test_filename = name+"_test.txt"
-val_filename = name+"_val.txt"
+#val_filename = name+"_val.txt"
+val_filename = "mkdir_seq.txt"
 doc = load_doc(in_filename)
 lines = doc.split('\n')
 val_doc = load_doc(val_filename)
 val_lines = val_doc.split("\n")
-test_doc = load_doc(test_filename)
-test_lines = test_doc.split("\n")
 lib = {}
-unique_word_count = 1
-words = [""]
-lib[""] = 0
-def one_hot(a):
-    y = []
-    global lib
-    for w in a:
-        arr = np.zeros(unique_word_count)
-        arr[w]=1
-        y.append(arr)
-    y = np.array(y)
-    return y
+unique_word_count = 0
+words = []
+
 def add_to_lib(lines):
     global lib
     global words
@@ -67,7 +58,7 @@ def add_to_lib(lines):
 # print(l2-l,unique_word_count-l2)
 # print(unique_word_count)
 
-for i in range(5):
+for i in range(k):
     lib[str(i)] = i
 
 
@@ -85,7 +76,7 @@ def split_X_y(lines):
 X,y = split_X_y(lines)
 X_val,y_val = split_X_y(val_lines)
 unique_word_count = 4
-model = TraceGen(5,5,100)
+model = TraceGen(k,5,50)
 print("sequence length:",len(X[0]))
 print(model)
 model.to(device)
@@ -124,7 +115,7 @@ total = 0.0
 guess_one = 0.0
 guess_zero=0.0
 
-for epoch in range(50):
+for epoch in range(10):
     start = time.time()
     running_loss = 0.0
     for x_batch,y_batch in trainloader:
@@ -179,4 +170,3 @@ print("done training")
 
 
 torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))
-

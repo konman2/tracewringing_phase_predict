@@ -29,7 +29,7 @@ def save_doc(lines, filename):
 	file.close()
  
 # load document
-in_filename = '../tracewringing/'+file+'.trace'
+in_filename = '../'+file+'.trace'
 doc = load_doc(in_filename)
 stack = "5"
 heap="7"

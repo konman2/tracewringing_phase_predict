@@ -105,3 +105,11 @@ ENV/
 .mypy_cache/
 *.txt
 *.trace
+heatmaps/
+models/
+hough_lines/
+proxy/
+sweep/
+labels/
+*.phases
+packets/

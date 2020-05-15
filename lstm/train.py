@@ -130,6 +130,7 @@ for epoch in range(100):
         #x_batch=x_batch.reshape(x_batch.shape[0],x_batch.shape[1],1)
         optimizer.zero_grad()
         outputs = model(x_batch)
+        print(outputs.shape,y_batch.shape)
         yhat = torch.softmax(outputs,dim=1)
         yhat = torch.max(yhat,dim=1)[1]
         

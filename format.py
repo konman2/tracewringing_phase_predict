@@ -1,11 +1,18 @@
-
-f = open('./gzip.trace','r')
-f2 = open('gzip2.trace','w')
-f3 = open('gzip3.trace','w')
+import sys
+name = sys.argv[1]
+f = open("in.trace",'r')
+f2 = open(name+'.trace','w')
 for line in f:
-    f2.write(line[1:])
-    f3.write(line[2:len(line)-3]+' ')
+    line = line.strip()
+    if line[0] == 'M':
+        line = line.replace(',',' ')
+        line = line.split(" ")
+        #print(line)
+        line[1] = "0x"+line[1]
+        #print(line[1])
+        l = " ".join(line)
+        f2.write(l+'\n')
 f.close()
 f2.close()
-f3.close()
+
 
