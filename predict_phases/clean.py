@@ -4,7 +4,7 @@ from numpy.random import shuffle
 import sys
 import gen
 
-
+seq_len = 30
 # load doc into memory
 def load_doc(filename):
 	file = open(filename, 'r')
@@ -27,17 +27,17 @@ def save_doc(lines, filename):
 	file.close()
  
 def gen_sequences(file,sequences):
-	in_filename = file+'.phases'
+	in_filename = "phases/"+file+'.phase'
 	doc = load_doc(in_filename)
-
-	tokens = [i.split(' ')[0][0] for i in doc]
-
+	print(doc)
+	tokens = [i.strip() for i in doc]
+	
 	print(tokens[:200])
 	print('Total Tokens: %d' % len(tokens))
 	print('Unique Tokens: %d' % len(set(tokens)))
 
 	# # organize into sequences of tokens
-	length = 30
+	length = seq_len
 	length+=1
 	#sequences = []
 	curr_seq = []
@@ -50,34 +50,35 @@ def gen_sequences(file,sequences):
 	return sequences
 
 
-files = gen.names
-train_p = 80
-if len(sys.argv) > 1:
-	files = [sys.argv[1]]
-	train_p =100
-sequences = []
-print(files)
-for file in files:
-	gen_sequences(file,sequences)
+if __name__ == "__main__":
+	files = gen.names
+	train_p = 80
+	if len(sys.argv) > 1:
+		files = [sys.argv[1]]
+		train_p =100
+	sequences = []
+	print(files)
+	for file in files:
+		gen_sequences(file,sequences)
 
-print(len(sequences),len(files))
-sequences = np.array(sequences)
-print(sequences.shape)
-shuffle(sequences)
-lines = []
+	print(len(sequences),len(files))
+	sequences = np.array(sequences)
+	print(sequences.shape)
+	shuffle(sequences)
+	lines = []
 
-for i in sequences:
-	lines.append(' '.join(i))
+	for i in sequences:
+		lines.append(' '.join(i))
 
 
-#print(lines)
-name = files[0]
-if len(files) > 1:
-	name = "group"
-train_range = (len(sequences)*train_p) // 100
-out_filename = name+'_seq.txt'
-save_doc(lines[:train_range], out_filename)
-if train_p < 100:
-	save_doc(lines[train_range:],name+'_val.txt')
-#save_doc(lines[train_range:train_range+(len(sequences)-train_range)//2],file+'_val.txt')
-#save_doc(lines[train_range+(len(sequences)-train_range)//2:],file+"_test.txt")
+	#print(lines)
+	name = files[0]
+	if len(files) > 1:
+		name = "group"
+	train_range = (len(sequences)*train_p) // 100
+	out_filename = name+'_seq.txt'
+	save_doc(lines[:train_range], out_filename)
+	if train_p < 100:
+		save_doc(lines[train_range:],name+'_val.txt')
+	#save_doc(lines[train_range:train_range+(len(sequences)-train_range)//2],file+'_val.txt')
+	#save_doc(lines[train_range+(len(sequences)-train_range)//2:],file+"_test.txt")

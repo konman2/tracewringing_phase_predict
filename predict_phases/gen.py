@@ -77,7 +77,7 @@ def to_file(label,names,sizes=None):
         assert len(names) == len(sizes)
     curr_ind = 0
     for c,name in enumerate(names):
-        f = open(name+".phases",'w')
+        f = open("phases/"+name+".phase",'w')
         for l in label[curr_ind:curr_ind+sizes[c]]:
             f.write(str(l)+"\n")
         f.close()
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     print(size_names)
     print(sum(size_names),len(heatmap1))
     #exit(1)
-    k2 = 5
+    k2 = 6
     label2,centroid2,cluster2,heatmap2,_ = gen_cluster(name2,k2,False)
     plt.figure()
     print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
@@ -99,8 +99,8 @@ if __name__ == "__main__":
     sizes = [len(heatmap1),len(centroid1),len(heatmap2),len(centroid2)]
     colors = ['r','b','yellow','green']
     print(sizes)
-    #t_sne(tot,sizes,colors)
-    #plt.show()
+    # t_sne(tot,sizes,colors)
+    # plt.show()
     to_file(label1,names,size_names)
     
     map_centroids = cluster1.predict(centroid2)
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         map_standard_label[item[0]] = m
     print(map_standard_label)
 
-    
+
     mapped_labels =[map_centroids[l] for l in label2]
     
     print(mapped_labels)
@@ -136,4 +136,3 @@ if __name__ == "__main__":
     pickle.dump(map_standard_label,f)
     f.close()
     
-

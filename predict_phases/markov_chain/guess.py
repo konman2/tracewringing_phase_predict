@@ -19,21 +19,26 @@ def load_doc(filename):
 	return text
 
 name = ""
-val_filename = "../mkdir.phases"
+val_filename = "../phases/mkdir.phase"
 val_doc = load_doc(val_filename)
 val_lines = val_doc.split("\n")
 print(val_lines)
 prev = None
 count = 0
 total = 0
+transition_points = 0
 for i in val_lines:
     if prev != None:
         if guess(prev) == i:
             count+=1
+        if prev != i:
+            transition_points+=1 
+
         total+=1
     prev = i
 print(count/total)
-
+print("transition_points:",transition_points,"total: ",total)
+print(lib)
 # def split_X_y(lines):
 #     sequences = []
 #     for line in lines:

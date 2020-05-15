@@ -76,7 +76,7 @@ def split_X_y(lines):
 X,y = split_X_y(lines)
 X_val,y_val = split_X_y(val_lines)
 unique_word_count = 4
-model = TraceGen(k,5,50)
+model = TraceGen(k,k,50)
 print("sequence length:",len(X[0]))
 print(model)
 model.to(device)
@@ -115,7 +115,7 @@ total = 0.0
 guess_one = 0.0
 guess_zero=0.0
 
-for epoch in range(10):
+for epoch in range(50):
     start = time.time()
     running_loss = 0.0
     for x_batch,y_batch in trainloader:
@@ -143,6 +143,7 @@ for epoch in range(10):
         for x,y in val_loader:
             x = x.to(device)
             y = y.to(device)
+            #print(x[0])
             # x= x.float()
             # x=x.reshape(x.shape[0],x.shape[1],1)
             outputs = model(x)

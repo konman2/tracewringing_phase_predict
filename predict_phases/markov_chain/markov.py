@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 import time
 import string
-name = "../mkdir.phases"
+name = "../phases/mkdir.phase"
 #f=open('/home/mkondapaneni/Research/LSTM_prac/training-monolingual/news.2011.en.shuffled')
 f = open(name,'r')
 start = time.time()

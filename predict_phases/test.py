@@ -31,7 +31,7 @@ def pad(encoded,maxlen=30):
 
 lib = pickle.load(open('lib.pkl','rb'))
 words = pickle.load(open('words.pkl','rb'))
-PATH = './models/epoch_33.pth'
+PATH = './models/epoch_6.pth'
 def split_X_y(lines):
     sequences = []
     for line in lines:
@@ -48,7 +48,7 @@ lines = doc.split('\n')
 X_test,y_test = split_X_y(lines)
 seq_length = 30
 
-model = TraceGen(k,5,100)
+model = TraceGen(k,k,100)
 model.load_state_dict(torch.load(PATH))
 model.to(device)
 test_data = []
