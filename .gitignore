@@ -112,4 +112,7 @@ proxy/
 sweep/
 labels/
 *.phases
+*.phase
 packets/
+clusters/
+figs/

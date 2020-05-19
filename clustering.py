@@ -1,11 +1,12 @@
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn_extra.cluster import KMedoids
 import matplotlib.pyplot as plt
 import os
 
 class Clustering(object):
 
-    def kmeans(self, k, collapse_factor, heatmap_matrix):
+    def kmeans(self, k, collapse_factor, heatmap_matrix,dist='euclidean'):
         """ Reduces heatmap_matrix dimensions by collapse_factor,
             calls K-Means clustering to cluster collapsed heatmap_matrix,
             returns a sequence of cluster labels.
@@ -45,6 +46,7 @@ class Clustering(object):
 
         reduced_heatmap = collapseHeatmap(heatmap_matrix,collapse_factor)
         cluster = KMeans(n_clusters=k,random_state=0).fit(reduced_heatmap.T)
+        # cluster = KMedoids(n_clusters=k,random_state=0,metric=dist).fit(reduced_heatmap.T)
         #print(cluster.labels_)
         return cluster.labels_, cluster.cluster_centers_,cluster,reduced_heatmap.T
 

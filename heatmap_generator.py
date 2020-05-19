@@ -74,7 +74,7 @@ class HeatmapGenerator(object):
         plt.close()
 
     
-    def compareHeatmaps(self, heatmap_orig, heatmap_new, name, save=False):
+    def compareHeatmaps(self, heatmap_orig, heatmap_new, name,save=False,name2=None,titles=("source","proxy"),metric=""):
         """ Figure of two heatmaps, for side by side comparison. 
         
         Arguments:
@@ -83,19 +83,21 @@ class HeatmapGenerator(object):
         """
         import matplotlib.pyplot as plt
         from matplotlib import cm
-
+        if name2 == None:
+            name2 = name
+        #(15,18)
         f, ax = plt.subplots(1,2, figsize=(15,18), sharex=True,frameon=True)
         ax[0].imshow(np.sqrt(np.sqrt(heatmap_orig)),cmap=cm.gray_r)
-        ax[0].set_title('Heatmap of source trace: {}'.format(name))
+        ax[0].set_title('Heatmap of {} trace: {}'.format(titles[0],name))
         ax[0].axis('off')
         ax[1].imshow(np.sqrt(np.sqrt(heatmap_new)),cmap=cm.gray_r)
-        ax[1].set_title('Heatmap of proxy trace: {}'.format(name))
+        ax[1].set_title('Heatmap of {} trace: {}'.format(titles[1],name2))
         ax[1].axis('off')
         plt.tight_layout()
         if save == True:
-            if not os.path.exists('./figs/compare'):
-                os.makedirs('./figs/compare')
-            plt.savefig('./figs/compare/'+name+'.png') 
+            if not os.path.exists('./figs/compare/'+metric):
+                os.makedirs('./figs/compare/'+metric)
+            plt.savefig('./figs/compare/'+metric+"/"+name+'.png') 
             print('Comparison of heatmaps: Figure saved..')
         else:
             plt.show()
