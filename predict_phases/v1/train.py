@@ -48,7 +48,8 @@ def split_X_y(lines):
         sequences.append(l)
     sequences = np.array(sequences)
     return sequences[:,:-1],sequences[:,-1]
-params = [k,k,100]
+    
+params = [k,k,320]
 if __name__ == "__main__":
     name = sys.argv[1]
     in_filename = name+'_seq.txt'
@@ -89,7 +90,7 @@ if __name__ == "__main__":
         train_data.append([X[i],y[i]])
     for i in range(X_val.shape[0]):
         val_data.append([X_val[i],y_val[i]])
-    print(X_val)
+    
     trainloader = DataLoader(train_data,batch_size=batch_size)
     val_loader = DataLoader(val_data,batch_size=batch_size)
 
@@ -105,10 +106,12 @@ if __name__ == "__main__":
     total = 0.0
     guess_one = 0.0
     guess_zero=0.0
-
+    print("number of samples:",len(X))
     for epoch in range(50):
         start = time.time()
         running_loss = 0.0
+        train_correct = 0.0
+        train_total= 0.0
         for x_batch,y_batch in trainloader:
             x_batch = x_batch.to(device)
             y_batch = y_batch.to(device)
@@ -119,6 +122,10 @@ if __name__ == "__main__":
             #print(x_batch.shape)
             optimizer.zero_grad()
             outputs = model(x_batch)
+            yhat = torch.softmax(outputs,dim=1)
+            yhat = torch.max(yhat,dim=1)[1]
+            train_correct += (y_batch==yhat).float().sum().item()
+            train_total += batch_size
             #print(outputs.shape)
             loss = loss_function(outputs,y_batch)
             loss.backward()
@@ -129,8 +136,6 @@ if __name__ == "__main__":
         correct = 0.0
         total = 0.0
         guess_mode = 0.0 
-        guess_one = 0.0
-        guess_zero=0.0
         with torch.no_grad():
             for x,y in val_loader:
                 x = x.to(device)
@@ -152,11 +157,11 @@ if __name__ == "__main__":
         val_file = open("val.pkl","wb")
         pickle.dump(val_curve,val_file)
         word_file.close()
-        print('[%d,%5d] loss: %.3f validation_loss: %.3f validation accuracy: %.5f,guess mode acc: %.3f' % (epoch+1,100,running_loss,val_loss,correct/total,guess_mode/total),"time=",end)
+        print('[%d,%5d] loss: %.3f accuracy:%.3f validation_loss: %.3f validation accuracy: %.5f,guess mode acc: %.3f' % (epoch+1,100,running_loss,train_correct/train_total,val_loss,correct/total,guess_mode/total),"time=",end)
         
-        torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))    
+        #torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))    
         
     print("done training")
 
 
-    torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))
+    #torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))

@@ -6,14 +6,18 @@ class TraceGen(nn.Module):
         super(TraceGen,self).__init__()
         self.embeddings = nn.Embedding(vocab_size,embedding_dim)
         #self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
-        self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
+        self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.2)
         #self.dense1 = nn.Linear(hidden_dim,hidden_dim)
         self.dense2 = nn.Linear(hidden_dim,vocab_size)
 
-    def forward(self,inputs):
+    def forward(self,inputs,embed=True):
         #print(inputs.shape)
         # # print(inputs.shape)
-        embeds = self.embeddings(inputs)
+        #print(inputs.shape)
+        if embed:
+            embeds = self.embeddings(inputs)
+        else:
+            embeds = inputs
         #test = self.embeddings(inputs)
         # embeds = inputs.float()
         # embeds = embeds.reshape(inputs.shape[0],inputs.shape[1],1)

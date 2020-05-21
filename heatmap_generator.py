@@ -94,10 +94,11 @@ class HeatmapGenerator(object):
         ax[1].set_title('Heatmap of {} trace: {}'.format(titles[1],name2))
         ax[1].axis('off')
         plt.tight_layout()
+        print(name,name2,titles)
         if save == True:
-            if not os.path.exists('./figs/compare/'+metric):
-                os.makedirs('./figs/compare/'+metric)
-            plt.savefig('./figs/compare/'+metric+"/"+name+'.png') 
+            if not os.path.exists('./figs/compare/'+metric+"/"+titles[1]):
+                os.makedirs('./figs/compare/'+metric+"/"+titles[1])
+            plt.savefig('./figs/compare/'+metric+"/"+titles[1]+"/"+titles[0]+":"+name+"-"+titles[1]+":"+name2+'.png') 
             print('Comparison of heatmaps: Figure saved..')
         else:
             plt.show()
