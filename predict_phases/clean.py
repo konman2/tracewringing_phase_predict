@@ -25,7 +25,7 @@ def save_doc(lines, filename):
 	file = open(filename, 'w')
 	file.write(data)
 	file.close()
- 
+
 def gen_sequences(file,sequences):
 	in_filename = "phases/"+file+'.phase'
 	doc = load_doc(in_filename)

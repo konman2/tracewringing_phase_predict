@@ -25,33 +25,20 @@ def load_doc(filename):
 	file.close()
 	return text
 
-# load
 
-
-def add_to_lib(lines):
-    global lib
-    global words
-    global unique_word_count
-    for line in lines:    
-        for word in line.split(' '):
-            if word not in lib and word != "0" and word!= "1":
-                lib[word] = unique_word_count
-                words.append(word)
-                unique_word_count+=1
-           
 def split_X_y(lines):
     sequences = []
     for line in lines:
         l = []
         for word in line.split(' '):
-            l.append(lib[word])
+            l.append(int(word))
         sequences.append(l)
     sequences = np.array(sequences)
     return sequences[:,:-1],sequences[:,-1]
     
-params = [k,k,320]
+params = [k,k,300]
 if __name__ == "__main__":
-    name = sys.argv[1]
+    name = "group"
     in_filename = name+'_seq.txt'
     #val_filename = name+"_val.txt"
     val_filename = "mkdir_seq.txt"
@@ -59,25 +46,23 @@ if __name__ == "__main__":
     lines = doc.split('\n')
     val_doc = load_doc(val_filename)
     val_lines = val_doc.split("\n")
-    lib = {}
-    unique_word_count = 0
-    words = []
-    for i in range(k):
-        lib[str(i)] = i
 
+
+    map_new_standard = np.array(pickle.load(open("map_new_standard.pkl",'rb')))
+    map_standard_new = np.array(pickle.load(open("map_standard_new.pkl",'rb')))
     X,y = split_X_y(lines)
     X_val,y_val = split_X_y(val_lines)
-    unique_word_count = 4
+    X_val = np.array([map_new_standard[a] for a in X_val],dtype='int64')
     model = TraceGen(params[0],params[1],params[2])
     print("sequence length:",len(X[0]))
     print(model)
     model.to(device)
-    dict_file = open('lib.pkl',"wb")
-    pickle.dump(lib,dict_file)
-    dict_file.close()
-    word_file = open("words.pkl","wb")
-    pickle.dump(words,word_file)
-    word_file.close()
+    # dict_file = open('lib.pkl',"wb")
+    # pickle.dump(lib,dict_file)
+    # dict_file.close()
+    # word_file = open("words.pkl","wb")
+    # pickle.dump(words,word_file)
+    # word_file.close()
     # X = torch.from_numpy(X)
     y = torch.tensor(y,dtype=torch.long)
     y_val = torch.tensor(y_val,dtype=torch.long)
@@ -100,14 +85,15 @@ if __name__ == "__main__":
     PATH = './torch_model.pth'
     loss_function = nn.CrossEntropyLoss().to(device)
     optimizer = optim.Adam(model.parameters())
-
+    map_standard_new = torch.from_numpy(map_standard_new).to(device)
+    map_new_standard = torch.from_numpy(map_new_standard).to(device)
     val_loss = 0.0
     correct = 0.0
     total = 0.0
     guess_one = 0.0
     guess_zero=0.0
     print("number of samples:",len(X))
-    for epoch in range(50):
+    for epoch in range(10):
         start = time.time()
         running_loss = 0.0
         train_correct = 0.0
@@ -125,7 +111,7 @@ if __name__ == "__main__":
             yhat = torch.softmax(outputs,dim=1)
             yhat = torch.max(yhat,dim=1)[1]
             train_correct += (y_batch==yhat).float().sum().item()
-            train_total += batch_size
+            train_total += len(y_batch)
             #print(outputs.shape)
             loss = loss_function(outputs,y_batch)
             loss.backward()
@@ -140,15 +126,21 @@ if __name__ == "__main__":
             for x,y in val_loader:
                 x = x.to(device)
                 y = y.to(device)
-                #print(x[0])
                 # x= x.float()
                 # x=x.reshape(x.shape[0],x.shape[1],1)
                 outputs = model(x)
                 yhat = torch.softmax(outputs,dim=1)
                 yhat = torch.max(yhat,dim=1)[1]
-                guess_mode += (torch.mode(x)[0].reshape(y.shape) == y).sum().item()
+                #rint(yhat)
+                yhat = map_standard_new[yhat]
+                #print(y)
+                # print(torch.mode(x)[0])
+                # print(yhat)
+                #print(yhat)
+                #print(y.shape,yhat.shape,map_standard_new[torch.mode(x)[0].reshape(y.shape)].shape)
+                guess_mode += (map_standard_new[torch.mode(x)[0]] == y).sum().item()
                 correct += (y==yhat).float().sum().item()
-                total+=batch_size
+                total+=len(y)
                 loss = loss_function(outputs,y)
                 val_loss+=loss.item()
 
@@ -156,12 +148,11 @@ if __name__ == "__main__":
         val_curve.append(val_loss)
         val_file = open("val.pkl","wb")
         pickle.dump(val_curve,val_file)
-        word_file.close()
         print('[%d,%5d] loss: %.3f accuracy:%.3f validation_loss: %.3f validation accuracy: %.5f,guess mode acc: %.3f' % (epoch+1,100,running_loss,train_correct/train_total,val_loss,correct/total,guess_mode/total),"time=",end)
         
-        #torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))    
+        torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))    
         
     print("done training")
 
 
-    #torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))
+    torch.save(model.state_dict(),"./models/epoch_%d.pth" %(epoch))

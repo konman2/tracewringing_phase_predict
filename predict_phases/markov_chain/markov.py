@@ -6,7 +6,7 @@ import string
 #f=open('/home/mkondapaneni/Research/LSTM_prac/training-monolingual/news.2011.en.shuffled')
 
 
-
+lib = {}
 print("running...")
 
 def process(prev,word):
@@ -19,12 +19,13 @@ def process(prev,word):
         lib[prev][word]+=1
     if word not in lib:
         lib[word] = {}
-        uniq_count+=1  
     return lib[word]
+
 names = ["cat","cp","echo","findmnt","git","ls"]
+
+m = pickle.load(open('../map_new_standard.pkl','rb'))
 for name in names:
     start = time.time()
-    lib = {}
     count = 0
     epsilon = 0.000
     w_count = 0
@@ -51,7 +52,7 @@ for name in names:
             np.save('times.npy',times)
             print()
         #print(line,end=" ")
-        word = line.strip()
+        word = int(line.strip())
         #print(word)
         # word = word.lower()
         # word = word.translate(str.maketrans('', '', string.punctuation))
@@ -68,10 +69,10 @@ for name in names:
         prev = word
     l_count+=1
 
-    print(len(lib))
-    print(lib)
-    dict_file = open('lib_markov.pkl',"wb")
-    pickle.dump(lib,dict_file)
-    dict_file.close()
-    end = time.time()
-    print(end - start)
+print(len(lib))
+print(lib)
+dict_file = open('lib_markov2.pkl',"wb")
+pickle.dump(lib,dict_file)
+dict_file.close()
+end = time.time()
+print(end - start)

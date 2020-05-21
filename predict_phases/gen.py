@@ -109,41 +109,44 @@ def to_file(label,names,sizes=None):
             f.write(str(l)+"\n")
         f.close()
 
-def calc_mapping(cluster1,centroid2,k2,label2,save=True):
-    map_centroids = cluster1.predict(centroid2)
-    print(map_centroids)
-    map_standard_label = {}
-    for c,l in enumerate(map_centroids):
-        if l in map_standard_label:
-            map_standard_label[l].append(c)
-        else:
-            map_standard_label[l] = [c]
-    count = np.zeros(k2)
-    for c,l in enumerate(label2):
-        count[l] += 1
+def calc_mapping(cluster1,centroid1,cluster2,centroid2,k2,label2,save=True):
+    map_new_standard = cluster1.predict(centroid2)
+    map_standard_new = cluster2.predict(centroid1)
+    print(map_new_standard)
+    print(map_standard_new)
+    # map_standard_label = {}
+    # for c,l in enumerate(map_centroids):
+    #     if l in map_standard_label:
+    #         map_standard_label[l].append(c)
+    #     else:
+    #         map_standard_label[l] = [c]
+    # count = np.zeros(k2)
+    # for c,l in enumerate(label2):
+    #     count[l] += 1
     
-    print(map_standard_label)
-    print(count)
-    for item in map_standard_label.items():
-        m = -1
-        for ind in item[1]:
-            if m == -1 or count[ind] > count[m]:
-                m = ind
-        map_standard_label[item[0]] = m
-    print(map_standard_label)
+    # print(map_standard_label)
+    # print(count)
+    # for item in map_standard_label.items():
+    #     m = -1
+    #     for ind in item[1]:
+    #         if m == -1 or count[ind] > count[m]:
+    #             m = ind
+    #     map_standard_label[item[0]] = m
+    # print(map_standard_label)
 
-
-    mapped_labels =[map_centroids[l] for l in label2]
+    # label2 
+    mapped_labels = [map_new_standard[l] for l in label2]
     if save == True:
-        print(mapped_labels)
-        to_file(mapped_labels,name2)
-        #print(centroid2.shape,centroid1.shape)
-        f = open("standard_to_label.pkl",'wb')
-        pickle.dump(map_standard_label,f)
+        #to_file(labe,name2)
+        f = open("map_standard_new.pkl",'wb')
+        f2 = open("map_new_standard.pkl",'wb')
+        pickle.dump(map_standard_new,f)
+        pickle.dump(map_new_standard,f2)
         f.close()
+        f2.close()
         #print(label1)
 
-    return map_centroids,map_standard_label,mapped_labels
+    return map_new_standard,mapped_labels
 
 def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,map_centroids,save=False,metric="euclidean"):
     tot=np.append(np.append(heatmap1,centroid1,axis=0),np.append(heatmap2,centroid2,axis=0),axis=0)
@@ -181,52 +184,17 @@ def run(names,name2,k,metric='euclidean',save=False,viz=False):
     print(heatmap1.shape)
     print(size_names)
     print(sum(size_names),len(heatmap1))
-    #exit(1)
     k2 = 8
     label2,centroid2,cluster2,heatmap2,_ = gen_cluster(name2,k2,False,dist=metric)
     print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
-    #####REMOVE#####
-    # heatmap1 = heatmap1.T
-    # heatmap2 = heatmap2.T
-    ################
-
-    # tot=np.append(np.append(heatmap1,centroid1,axis=0),np.append(heatmap2,centroid2,axis=0),axis=0)
-    # sizes = [len(heatmap1),len(centroid1),len(heatmap2),len(centroid2)]
-    # colors = ['red','lime','yellow','blue']
-    # plot_labels = ["standard heatmap","standard centroids",name2+" heatmap",name2+" centroids"]
-    # print(tot.shape)
-    # print(sizes)
-    # t_sne(tot,sizes,colors,names=plot_labels,dist='euclidean')
-       
-    # figure = plt.gcf()
-    # figure.set_size_inches(32,18)
-    # if save:
-    #     if not os.path.exists("figs/compare/"+metric+"/"+name2):
-    #         os.makedirs("figs/compare/"+metric+"/"+name2)
-    #     plt.savefig("figs/compare/"+metric+"/"+name2+"/clusterspace.png")
-    # else:
-    #     plt.show()
-    # plt.figure()
-
     if save:
         to_file(label1,names,size_names)
-    # hg = HeatmapGenerator()
-    # cl = Clustering()
-    map_centroids = calc_mapping(cluster1,centroid2,k2,label2,save=save)[0]
+        to_file(label2,name2)
+    map_centroids = calc_mapping(cluster1,centroid1,cluster2,centroid2,k2,label2,save=save)[0]
     if viz:
         visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,map_centroids,False,metric)
         plt.figure()
-    # phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
-    # phase2 = cl.getRepresentativePhases(label2,COLLAPSE_FACTOR,heatmap2.T)
-    # print(len(phase1),len(phase2),len(set(label2)))
-    # for i in set(label2):
-    #     print(phase1[map_centroids[i]].shape,phase2[i].shape)
-    #     a = phase1[map_centroids[i]]#.reshape(-1,1)
-    #     b = phase2[i]#.reshape(-1,1)
-    #     reshape_size = (HEIGHT,200)
-    #     a = resize(a,reshape_size)
-    #     b = resize(b,reshape_size)
-    #     hg.compareHeatmaps(a**4,b**4,"cluster-"+str(map_centroids[i]),save,"cluster-"+str(i),titles=("standard",name2),metric=metric)
+
     
 
 names = ["cat","cp","echo","findmnt","git","ls",]
@@ -235,4 +203,4 @@ k=120
 metric = 'euclidean'
 
 if __name__ == "__main__":
-   run(names,name2,k,metric,False,True)
+   run(names,name2,k,metric,save=True,viz=False)

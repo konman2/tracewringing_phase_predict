@@ -15,6 +15,8 @@ dev = "cpu"
 if torch.cuda.is_available():
     dev="cuda:0"
 device = torch.device(dev)
+map_new_standard = np.array(pickle.load(open("map_new_standard.pkl",'rb')))
+map_standard_new = np.array(pickle.load(open("map_standard_new.pkl",'rb')))
 def load_doc(filename):
     # open the file as read only
     file = open(filename, 'r')
@@ -40,7 +42,7 @@ def generate_seq(model, seq_length, first_seq, n_words):
     for _ in range(n_words):
         #print(type(x))
         #print(x)
-        x_in = torch.tensor(x).reshape(1,seq_length).to(device)
+        x_in = torch.tensor(x,dtype=torch.long).reshape(1,seq_length).to(device)
         outputs = model(x_in)
         yhat = torch.softmax(outputs,dim=1)
         yhat = torch.max(yhat,dim=1)[1]
@@ -55,18 +57,20 @@ def generate_seq(model, seq_length, first_seq, n_words):
 
 lib = pickle.load(open('lib.pkl','rb'))
 words = pickle.load(open('words.pkl','rb'))
-PATH = './models/epoch_1.pth'
+PATH = './models/epoch_9.pth'
 
 in_filename = "phases/"+name+'.phase'
 doc = load_doc(in_filename)
 lines = doc.split('\n')
 print(lines)
-first_seq = [int(i) for i in lines[:seq_len]]
+
+first_seq = [map_new_standard[int(i)] for i in lines[:seq_len]]
 model = TraceGen(params[0],params[1],params[2])
 model.load_state_dict(torch.load(PATH))
 model.to(device)
 
 print(first_seq)
 result = generate_seq(model,seq_len,first_seq,len(lines)-seq_len)
+print()
 print(result)
 print(len(result))
