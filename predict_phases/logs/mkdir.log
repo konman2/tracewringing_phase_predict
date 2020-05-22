@@ -1,0 +1,10 @@
+[1,  100] loss: 2082.496 accuracy:0.572 validation_loss: 372.506 validation accuracy: 0.59437,guess mode acc: 0.359 time= 9.704725742340088
+[2,  100] loss: 1150.563 accuracy:0.706 validation_loss: 402.073 validation accuracy: 0.53886,guess mode acc: 0.359 time= 9.496534824371338
+[3,  100] loss: 946.921 accuracy:0.744 validation_loss: 412.849 validation accuracy: 0.51739,guess mode acc: 0.359 time= 9.51244044303894
+[4,  100] loss: 819.507 accuracy:0.775 validation_loss: 416.522 validation accuracy: 0.54774,guess mode acc: 0.359 time= 9.477665662765503
+[5,  100] loss: 719.366 accuracy:0.798 validation_loss: 423.347 validation accuracy: 0.53812,guess mode acc: 0.359 time= 9.47569465637207
+[6,  100] loss: 640.001 accuracy:0.818 validation_loss: 429.698 validation accuracy: 0.54626,guess mode acc: 0.359 time= 9.492192506790161
+[7,  100] loss: 588.259 accuracy:0.831 validation_loss: 434.658 validation accuracy: 0.53294,guess mode acc: 0.359 time= 9.496809720993042
+[8,  100] loss: 541.414 accuracy:0.846 validation_loss: 441.255 validation accuracy: 0.52776,guess mode acc: 0.359 time= 9.485815525054932
+[9,  100] loss: 501.816 accuracy:0.854 validation_loss: 458.586 validation accuracy: 0.53442,guess mode acc: 0.359 time= 9.456873655319214
+[10,  100] loss: 466.765 accuracy:0.865 validation_loss: 433.427 validation accuracy: 0.51813,guess mode acc: 0.359 time= 9.694270849227905
