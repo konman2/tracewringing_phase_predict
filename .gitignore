@@ -106,7 +106,6 @@ ENV/
 *.txt
 *.trace
 heatmaps/
-models/
 hough_lines/
 proxy/
 sweep/

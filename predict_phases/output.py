@@ -57,7 +57,7 @@ def generate_seq(model, seq_length, first_seq, n_words):
 
 lib = pickle.load(open('lib.pkl','rb'))
 words = pickle.load(open('words.pkl','rb'))
-PATH = './models/epoch_9.pth'
+PATH = './models/epoch_8.pth'
 
 in_filename = "phases/"+name+'.phase'
 doc = load_doc(in_filename)
@@ -68,6 +68,7 @@ first_seq = [map_new_standard[int(i)] for i in lines[:seq_len]]
 model = TraceGen(params[0],params[1],params[2])
 model.load_state_dict(torch.load(PATH))
 model.to(device)
+model.eval()
 
 print(first_seq)
 result = generate_seq(model,seq_len,first_seq,len(lines)-seq_len)
