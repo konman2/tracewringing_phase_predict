@@ -41,8 +41,8 @@ def save_doc(lines, filename):
 def gen_sequences(file,sequences,sequence_lens,test):
     in_filename = "phases/"+file+'.phase'
     doc = load_doc(in_filename)
-    print(file)
-    print(doc)
+    # print(file)
+    # print(doc)
     tokens = [i.strip() for i in doc]
     enc,lens = encodeRLE(tokens,1)
     # print(tokens[:200])

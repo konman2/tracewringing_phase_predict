@@ -16,6 +16,7 @@ import pickle
 from skimage.transform import resize
 from sklearn.preprocessing import Normalizer
 import matplotlib.patches as mpatches
+
 #dist = DistanceMetric.get_metric('minkowski',p=2)
 
 # NAME = sys.argv[1]
@@ -29,7 +30,7 @@ WINDOW_SIZE = 100
 HEIGHT = 2048
 COLLAPSE_FACTOR = 1
 
-def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False):
+def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=False):
     heatmap_fig = []
     sizes = []
     if type(names) is not list and type(names) is not tuple:
@@ -40,12 +41,12 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False):
     cl_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/clusters/{}'.format("-".join(names)+"-"+str(clusters)+"-"+dist+end)
     for name in names:
         wl_path =  '/home/mkondapaneni/Research/tracewringing_phase_predict/traces/{}.trace'.format(name)
-        print(wl_path)
         hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps/{}'.format(name)
         if os.path.exists(hm_path):
             with open(hm_path,'rb') as f:
                 hm_matrix = pickle.load(f)
-            print("WARNING using heatmap at "+hm_path)
+            if verbose:
+                print("WARNING using heatmap at "+hm_path)
         else:
             hm_matrix = generate_heatmap(wl_path, HEIGHT, WINDOW_SIZE, hm_path)
         if len(heatmap_fig) == 0:
@@ -59,7 +60,8 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False):
     if os.path.exists(cl_path):
         with open(cl_path,'rb') as f:
             kmeans = pickle.load(f)
-        print("WARNING using cluster at " +cl_path)
+        if verbose:
+            print("WARNING using cluster at " +cl_path)
     else:
         cl = Clustering()
         heatmap = heatmap_fig.T
@@ -140,32 +142,57 @@ def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,ma
         b = resize(b,reshape_size)
         hg.compareHeatmaps(a**4,b**4,"cluster-"+str(map_centroids[i]),save,"cluster-"+str(i),titles=("standard",name2),metric=metric)
 
-
-def run(names,name2,k,metric='euclidean',save=False,viz=False):
-    label1,centroid1,cluster1,heatmap1,size_names = gen_cluster(names,k,False,dist=metric)
-    print(heatmap1.shape)
-    print(size_names)
-    print(sum(size_names),len(heatmap1))
+def p(s="",f=None,end="\n"):
+    if f == None:
+        print(s)
+    if f:
+        f.write(s+end)
+def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_file=None):
+    label1,centroid1,cluster1,heatmap1,size_names = gen_cluster(names,k,False,dist=metric,verbose=verbose)
+    f = None
+    if log_file != None:
+        f = open("./logs/"+log_file+".log",'w')
+    # print(heatmap1.shape)
+    # print(size_names)
+    # print(sum(size_names),len(heatmap1))
     k2 = 8
     label2,centroid2,cluster2,heatmap2,_ = gen_cluster(name2,k2,False,dist=metric)
-    print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
+    #print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
     
     #map_centroids,map_labels = calc_mapping(cluster1,centroid1,heatmap2,save=save)[0]
     map_centroids = cluster1.predict(centroid2)
     map_new_standard = cluster1.predict(heatmap2)
+    #distances = np.array([euclidean_distances(centroid1[i].reshape(1,-1),heatmap2[c].reshape(1,-1)).item() for c,i in enumerate(map_new_standard)  ])
+    cluster_dict = {}
+    for c,i in enumerate(map_new_standard):
+        if i not in cluster_dict:
+            cluster_dict[i] = []
+        cluster_dict[i].append(euclidean_distances(centroid1[i].reshape(1,-1),heatmap2[c].reshape(1,-1)).item())
+    p("unique clusters: " + str(len(set(map_new_standard))),f)
+    p(f=f)
+    for key in cluster_dict.keys():
+        p("Cluster: " +str(key),f)
+        distances = np.array(cluster_dict[key])
+        p("number of items: " +str(len(distances)),f)
+        p("average_distance: " + str(np.mean(distances)),f)
+        p("standard deviation: " + str(np.std(distances)),f)
+        p(f=f)
+    # print("average_distance: " + str(np.mean(distances)))
+    # print("standard deviation: " + str(np.std(distances)))
     if save:
         to_file(label1,names,size_names)
         to_file(map_new_standard,name2)
     if viz:
         visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,map_centroids,False,metric)
         plt.figure()
-
+    if f!=None:
+        f.close()
     
 
-names = ["cat","cp","echo","findmnt","git","ls",]
+names = ["cat","cp","echo","findmnt","git","ls"]
 name2 = "mkdir"
 k=120
 metric = 'euclidean'
 
 if __name__ == "__main__":
-   run(names,name2,k,metric,save=True,viz=True)
+   gen(names,name2,k,metric,save=True,viz=False,log_file="test")

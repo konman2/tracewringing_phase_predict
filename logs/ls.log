@@ -1,0 +1,233 @@
+unique clusters: 44
+
+Cluster: 81
+number of items: 316
+average_distance: 5.972818314513815
+standard deviation: 0.38648805794240215
+
+Cluster: 56
+number of items: 369
+average_distance: 5.924062079056022
+standard deviation: 0.6816385291117489
+
+Cluster: 115
+number of items: 1092
+average_distance: 6.131439080314998
+standard deviation: 0.5570320106284983
+
+Cluster: 31
+number of items: 57
+average_distance: 2.941449931842006
+standard deviation: 0.6352982201074673
+
+Cluster: 58
+number of items: 50
+average_distance: 5.207851419696652
+standard deviation: 0.8973545360256574
+
+Cluster: 38
+number of items: 28
+average_distance: 4.1295514239934334
+standard deviation: 0.9904816476125708
+
+Cluster: 70
+number of items: 39
+average_distance: 5.078261702017467
+standard deviation: 0.5501527486380563
+
+Cluster: 47
+number of items: 54
+average_distance: 5.713557349140548
+standard deviation: 0.6062600644452782
+
+Cluster: 113
+number of items: 37
+average_distance: 5.661333009410884
+standard deviation: 0.7730555012355605
+
+Cluster: 73
+number of items: 2
+average_distance: 6.7480872150691535
+standard deviation: 0.0038484576467516796
+
+Cluster: 20
+number of items: 38
+average_distance: 5.681053034561791
+standard deviation: 0.6082865342973397
+
+Cluster: 94
+number of items: 23
+average_distance: 5.815896542660548
+standard deviation: 0.4199672906156742
+
+Cluster: 71
+number of items: 2
+average_distance: 5.213557371503174
+standard deviation: 0.3770030201658434
+
+Cluster: 41
+number of items: 1
+average_distance: 5.720336950618551
+standard deviation: 0.0
+
+Cluster: 42
+number of items: 217
+average_distance: 5.504806197365252
+standard deviation: 0.5380283274575406
+
+Cluster: 117
+number of items: 13
+average_distance: 5.592698959674603
+standard deviation: 0.36203589407442216
+
+Cluster: 77
+number of items: 50
+average_distance: 5.815561562890633
+standard deviation: 0.6561591877451345
+
+Cluster: 57
+number of items: 1
+average_distance: 6.05224592257077
+standard deviation: 0.0
+
+Cluster: 67
+number of items: 2
+average_distance: 6.709196090245108
+standard deviation: 0.6696266354626004
+
+Cluster: 5
+number of items: 130
+average_distance: 4.242525102077245
+standard deviation: 0.6669930805279025
+
+Cluster: 12
+number of items: 132
+average_distance: 4.81299482714079
+standard deviation: 0.327084918879233
+
+Cluster: 45
+number of items: 115
+average_distance: 3.9576617208070144
+standard deviation: 0.32070581661977965
+
+Cluster: 118
+number of items: 181
+average_distance: 5.063449603733565
+standard deviation: 0.8459231613918623
+
+Cluster: 97
+number of items: 102
+average_distance: 4.922043470289587
+standard deviation: 0.5740932557876135
+
+Cluster: 55
+number of items: 13
+average_distance: 5.781920884390165
+standard deviation: 0.6669141495280946
+
+Cluster: 64
+number of items: 115
+average_distance: 4.639579932141803
+standard deviation: 1.0132273309528
+
+Cluster: 29
+number of items: 6
+average_distance: 5.60316120505064
+standard deviation: 0.7536628037860841
+
+Cluster: 23
+number of items: 3
+average_distance: 4.252786796798006
+standard deviation: 0.11912445346566577
+
+Cluster: 19
+number of items: 86
+average_distance: 5.862978483506587
+standard deviation: 0.45378291796212566
+
+Cluster: 111
+number of items: 2
+average_distance: 5.113760508528601
+standard deviation: 0.028932487740567225
+
+Cluster: 65
+number of items: 1
+average_distance: 5.223181639492452
+standard deviation: 0.0
+
+Cluster: 84
+number of items: 19
+average_distance: 5.428408039819317
+standard deviation: 0.3529982417322152
+
+Cluster: 62
+number of items: 4
+average_distance: 5.675378741400492
+standard deviation: 1.1616751751077177
+
+Cluster: 103
+number of items: 1
+average_distance: 5.526922041782293
+standard deviation: 0.0
+
+Cluster: 8
+number of items: 3
+average_distance: 5.8453088611986175
+standard deviation: 0.7630195660075203
+
+Cluster: 28
+number of items: 71
+average_distance: 4.37845689969518
+standard deviation: 0.38908846880774534
+
+Cluster: 95
+number of items: 2
+average_distance: 5.3487174317818855
+standard deviation: 0.19881946553852314
+
+Cluster: 85
+number of items: 41
+average_distance: 5.465661233276557
+standard deviation: 0.8451838110688631
+
+Cluster: 3
+number of items: 2
+average_distance: 5.602148440025384
+standard deviation: 0.6028463882129902
+
+Cluster: 59
+number of items: 2
+average_distance: 6.26985722388123
+standard deviation: 0.38853032039762336
+
+Cluster: 90
+number of items: 19
+average_distance: 6.066837047166564
+standard deviation: 0.14933177779754178
+
+Cluster: 112
+number of items: 4
+average_distance: 5.441456128650304
+standard deviation: 0.11542945225115317
+
+Cluster: 34
+number of items: 2
+average_distance: 5.515860615682991
+standard deviation: 0.06662564491268297
+
+Cluster: 100
+number of items: 2
+average_distance: 6.287311097526517
+standard deviation: 0.9838708298508005
+
+TRAINING
+[1,   10] loss: 2550.302 accuracy:0.424 validation_loss: 242.246 validation accuracy: 0.76893,guess mode acc: 0.643,unique predictions: 30 time= 18.17800998687744
+[2,   10] loss: 1356.298 accuracy:0.661 validation_loss: 244.682 validation accuracy: 0.75421,guess mode acc: 0.643,unique predictions: 45 time= 18.146487712860107
+[3,   10] loss: 1048.739 accuracy:0.726 validation_loss: 223.814 validation accuracy: 0.79928,guess mode acc: 0.643,unique predictions: 46 time= 18.09299612045288
+[4,   10] loss: 894.247 accuracy:0.761 validation_loss: 238.764 validation accuracy: 0.80048,guess mode acc: 0.643,unique predictions: 51 time= 18.163970708847046
+[5,   10] loss: 794.867 accuracy:0.784 validation_loss: 243.198 validation accuracy: 0.80018,guess mode acc: 0.643,unique predictions: 56 time= 18.18307328224182
+[6,   10] loss: 721.804 accuracy:0.800 validation_loss: 253.028 validation accuracy: 0.78846,guess mode acc: 0.643,unique predictions: 53 time= 18.214330196380615
+[7,   10] loss: 669.575 accuracy:0.811 validation_loss: 271.066 validation accuracy: 0.78456,guess mode acc: 0.643,unique predictions: 56 time= 18.25057625770569
+[8,   10] loss: 630.580 accuracy:0.818 validation_loss: 290.199 validation accuracy: 0.78666,guess mode acc: 0.643,unique predictions: 58 time= 18.179972887039185
+[9,   10] loss: 599.870 accuracy:0.827 validation_loss: 288.968 validation accuracy: 0.77013,guess mode acc: 0.643,unique predictions: 64 time= 18.12730097770691
+[10,   10] loss: 562.968 accuracy:0.836 validation_loss: 326.158 validation accuracy: 0.76953,guess mode acc: 0.643,unique predictions: 60 time= 18.11529803276062

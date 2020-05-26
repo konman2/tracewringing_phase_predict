@@ -11,6 +11,9 @@ from net import TraceGen
 from gen import k
 import sys
 import os
+from sklearn.metrics import average_precision_score
+
+
 dev = ""
 if torch.cuda.is_available():
     dev="cuda:0"
@@ -38,6 +41,23 @@ def split_X_y(lines,m=1):
     sequences = np.array(sequences)
     return sequences[:,:-1],sequences[:,-1]
     
+def val(model,X_val,y_val,top5,a):
+    outputs = model(X_val)
+    yhat = torch.softmax(outputs,dim=1)
+    yhat = torch.topk(yhat,5,dim=1)[1]
+    correct = 0.0
+    guess_mode= 0.0
+    # print(yhat.shape)
+    # print(y_val.shape)
+    a.extend(torch.flatten(yhat).tolist())
+    # precision = average_precision_score()
+    for c,i in enumerate(y_val):
+        if i in yhat[c]:
+            correct+=1
+        if i in top5:
+            guess_mode+=1
+    total=len(y_val)
+    return correct,guess_mode,total
 
 def train(val_name,params,log_file=None):
     in_filename = 'sequences/group_seq.txt'
@@ -55,7 +75,8 @@ def train(val_name,params,log_file=None):
     if not os.path.exists("./logs"):
         os.makedirs("./logs")
     if log_file != None:
-        f = open("./logs/"+log_file+".log",'w')
+        f = open("./logs/"+log_file+".log",'a+')
+        f.write("TRAINING\n")
     X,y = split_X_y(lines)
     X_val,y_val = split_X_y(val_lines)
     # print(X2/np.amax(X2))
@@ -71,7 +92,7 @@ def train(val_name,params,log_file=None):
     # pickle.dump(words,word_file)
     # word_file.close()
     # X = torch.from_numpy(X)
-    y = torch.tensor(y,dtype=torch.long)
+    y = torch.tensor(y,dtype=torch.long).to(device)
     y_val = torch.tensor(y_val,dtype=torch.long)
     print(y)
     #print(y)
@@ -109,6 +130,8 @@ def train(val_name,params,log_file=None):
     total = 0.0
     print("number of samples:",len(X))
     epochs = 10
+    X_val = torch.from_numpy(X_val).to(device)
+    y_val = y_val.to(device)
     for epoch in range(epochs):
         model.train()
         start = time.time()
@@ -143,6 +166,24 @@ def train(val_name,params,log_file=None):
         a = []
         # top5 = torch.tensor([29,97,118,7,99]).to(device)
         with torch.no_grad():
+            # optimizer.zero_grad()
+            # correct,guess_mode,total = val(model,X_val,y_val,top5,a)
+            # outputs = model(X_val)
+            # yhat = torch.softmax(outputs,dim=1)
+            # yhat = torch.topk(yhat,5,dim=1)[1]
+            
+            # # print(yhat.shape)
+            # # print(y_val.shape)
+            # a.extend(torch.flatten(yhat).tolist())
+            # # precision = average_precision_score()
+            # for c,i in enumerate(y_val):
+            #     if i in yhat[c]:
+            #         correct+=1
+            #     if i in top5:
+            #         guess_mode+=1
+            # total+=len(y_val)
+        
+            #print(yhat)
             for x,y in val_loader:
                 x = x.to(device).long()
                 y = y.to(device).long()
