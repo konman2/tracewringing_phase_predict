@@ -17,6 +17,7 @@ class TraceGen(nn.Module):
         self.embeddings = nn.Embedding(vocab_size,embedding_dim)
         #self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
         self.lstm = nn.LSTM(embedding_dim,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
+        self.lstm2 = nn.LSTM(embedding_dim+1,hidden_dim,num_layers=2,batch_first=True,dropout=0.5)
         #self.dense1 = nn.Linear(hidden_dim,hidden_dim)
         self.dense2 = nn.Linear(hidden_dim,vocab_size)
 
@@ -29,8 +30,11 @@ class TraceGen(nn.Module):
             inputs = inputs.reshape(inputs.shape[0],inputs.shape[1],1)
             embeds = torch.FloatTensor(inputs.shape[0],inputs.shape[1],self.vocab_size).zero_().to(device)
             embeds.scatter_(2,inputs,1)
-        #embeds = torch.cat((embeds,input2.float().reshape(input2.shape[0],input2.shape[1],1)),2)
-        lstm_out,_ = self.lstm(embeds)
+        if input2 != None:
+            embeds = torch.cat((embeds,input2.float().reshape(input2.shape[0],input2.shape[1],1)),2)
+            lstm_out,_ = self.lstm2(embeds)
+        else:
+            lstm_out,_ = self.lstm(embeds)
         #print(lstm_out.shape)
         last_out = lstm_out[:,-1]
         #d1 = F.relu(self.dense1(last_out))

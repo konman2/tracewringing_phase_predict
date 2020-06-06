@@ -4,7 +4,7 @@ from numpy.random import shuffle
 import sys
 import gen
 
-seq_len = 120
+seq_len = 50
 # load doc into memory
 def load_doc(filename):
     file = open(filename, 'r')
@@ -69,7 +69,7 @@ def gen_sequences(file,sequences,sequence_lens,test):
 
     return sequences,sequence_lens
 
-def clean(names):
+def clean(names,rle=False):
     files = names
     train_p = 100
     print(len(files))
@@ -100,17 +100,18 @@ def clean(names):
     train_range = (len(sequences)*train_p) // 100
     out_filename = name+'_seq.txt'
     out_filename2 = name+'lens_seq.txt'
-    save_doc(test_lines[:test_train_range],out_filename)
-    # save_doc(lines[:train_range], out_filename)
-    # save_doc(lines2[:train_range],out_filename2)
-    # save_doc(sequence_lens,name+"_len_seq.txt")
+    if rle:
+        save_doc(lines[:train_range], out_filename)
+        save_doc(lines2[:train_range],out_filename2)
+    else:
+        save_doc(test_lines[:test_train_range],out_filename)
+
     if train_p < 100:
         save_doc(lines[train_range:],name+'_val.txt')
         save_doc(lines2[:train_range],name+'lens_val.txt')
-        
 
 if __name__ == "__main__":
     files = gen.names
     if len(sys.argv) > 1:
         files = [sys.argv[1]]
-    clean(files)
+    clean(files,rle=False)

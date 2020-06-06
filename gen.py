@@ -16,7 +16,11 @@ import pickle
 from skimage.transform import resize
 from sklearn.preprocessing import Normalizer
 import matplotlib.patches as mpatches
-
+from sklearn.cluster import AffinityPropagation
+from sklearn.cluster import AgglomerativeClustering
+from skimage.metrics import mean_squared_error as mse
+from sklearn.neighbors import KNeighborsClassifier as KNN
+from scipy.ndimage.interpolation import shift
 #dist = DistanceMetric.get_metric('minkowski',p=2)
 
 # NAME = sys.argv[1]
@@ -29,8 +33,20 @@ ID = '1'
 WINDOW_SIZE = 100
 HEIGHT = 2048
 COLLAPSE_FACTOR = 1
+def konda_score(heatmap1,heatmap2):
+    assert heatmap1.shape == heatmap2.shape
+    base = np.zeros(heatmap1.shape)
+    total_both_zeros = np.sum(np.logical_and(heatmap1==base,heatmap2==base))
+    total_points = heatmap1.shape[0]
+    if(len(heatmap1.shape) == 2):
+        total_points = heatmap1.shape[0]*heatmap1.shape[1]
+    score = mse(heatmap1,heatmap2)*total_points
+    #return np.sqrt(np.sqrt((np.linalg.norm(heatmap1.flatten()-heatmap2.flatten(),4)/total_points)))
+    if total_both_zeros == total_points:
+        return 0.0
+    return score/(total_points-total_both_zeros)
 
-def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=False):
+def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=False,method='kmeans'):
     heatmap_fig = []
     sizes = []
     if type(names) is not list and type(names) is not tuple:
@@ -38,7 +54,7 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
     end = ""
     if pca:
         end = "-pca"
-    cl_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/clusters/{}'.format("-".join(names)+"-"+str(clusters)+"-"+dist+end)
+    cl_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/clusters/{}/{}'.format(method,"-".join(names)+"-"+str(clusters)+"-"+dist+end)
     for name in names:
         wl_path =  '/home/mkondapaneni/Research/tracewringing_phase_predict/traces/{}.trace'.format(name)
         hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps/{}'.format(name)
@@ -56,13 +72,13 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
            heatmap_fig = np.append(heatmap_fig,(np.sqrt( np.sqrt( hm_matrix ))),axis=1)
         # print(hm_matrix.shape,heatmap_fig.shape)
         sizes.append(len(hm_matrix.T))
-
     if os.path.exists(cl_path):
         with open(cl_path,'rb') as f:
-            kmeans = pickle.load(f)
+            clusters = pickle.load(f)
         if verbose:
             print("WARNING using cluster at " +cl_path)
     else:
+        
         cl = Clustering()
         heatmap = heatmap_fig.T
         if dist == "cosine":
@@ -70,11 +86,16 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
             heatmap = normalizer.fit_transform(heatmap)
         if pca:
             heatmap = PCA(n_components=500).fit_transform(heatmap)
-
-        kmeans = cl.kmeans(clusters,COLLAPSE_FACTOR,heatmap.T)
+        if method == 'kmeans':
+            print(heatmap.shape)
+            clusters = cl.kmeans(clusters,COLLAPSE_FACTOR,heatmap.T)
+        if method == 'aff_prop':
+            print(heatmap.astype('float32').dtype)
+            aff_prop = AffinityPropagation(damping=0.5).fit(heatmap.astype('float32'))
+            clusters = (aff_prop.labels_,aff_prop.cluster_centers_,aff_prop)
         with open(cl_path, 'wb') as f:
-            pickle.dump(kmeans,f)
-    labels,centroids,cluster = kmeans
+            pickle.dump(clusters,f)
+    labels,centroids,cluster = clusters
     # print(np.array_equal(heatmap_fig,heatmap.T))
     # hg  = HeatmapGenerator()
     # hg.compareHeatmaps(heatmap_fig,heatmap.T,"-".join(names))
@@ -112,43 +133,113 @@ def to_file(label,names,sizes=None):
             f.write(str(l)+"\n")
         f.close()
 
-def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,map_centroids,save=False,metric="euclidean"):
-    tot=np.append(np.append(heatmap1,centroid1,axis=0),np.append(heatmap2,centroid2,axis=0),axis=0)
-    sizes = [len(heatmap1),len(centroid1),len(heatmap2),len(centroid2)]
-    colors = ['red','lime','yellow','blue']
-    plot_labels = ["standard heatmap","standard centroids",name2+" heatmap",name2+" centroids"]
-    print(tot.shape)
-    print(sizes)
-    t_sne(tot,sizes,colors,names=plot_labels,dist=metric)
-    figure = plt.gcf()
-    figure.set_size_inches(32,18)
-    if save:
-        if not os.path.exists("figs/compare/"+metric+"/"+name2):
-            os.makedirs("figs/compare/"+metric+"/"+name2)
-        plt.savefig("figs/compare/"+metric+"/"+name2+"/clusterspace.png")
-    else:
-        plt.show()
+def make_heatmap(phases,labels):
+    counts = np.zeros(120).astype('int')
+    b = []
+    # for c,i in enumerate(labels):
+    #     if phases[i].T.shape[0]<=counts[i]:
+    #         counts[i] = 0
+    #     print(counts[i])
+    #     b.append(phases[i].T[counts[i]])
+    #     counts[i]+=1
+    curr_count = 0
+    prev = None
+    for c,i in enumerate(labels):
+        if prev == None or prev != i:
+            curr_count = 0
+        #print(i,phase1[i].T.shape,curr_count)
+        if phases[i].T.shape[0] <= curr_count:
+            print(i,c,curr_count,phases[i].T.shape)
+            curr_count=0
+        b.append(phases[i].T[curr_count])
+        curr_count+=1
+        prev=i
+    #print(counts)
+    return np.array(b)
+
+
+
+def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,save=False,metric="euclidean"):
+    # tot=np.append(np.append(heatmap1,centroid1,axis=0),np.append(heatmap2,centroid2,axis=0),axis=0)
+    # sizes = [len(heatmap1),len(centroid1),len(heatmap2),len(centroid2)]
+    # colors = ['red','lime','yellow','blue']
+    # plot_labels = ["standard heatmap","standard centroids",name2+" heatmap",name2+" centroids"]
+    # print(tot.shape)
+    # print(sizes)
+    # t_sne(tot,sizes,colors,names=plot_labels,dist=metric)
+    # figure = plt.gcf()
+    # figure.set_size_inches(32,18)
+    # if save:
+    #     if not os.path.exists("figs/compare/"+metric+"/"+name2):
+    #         os.makedirs("figs/compare/"+metric+"/"+name2)
+    #     plt.savefig("figs/compare/"+metric+"/"+name2+"/clusterspace.png")
+    # else:
+    #     plt.show()
     hg = HeatmapGenerator()
     cl = Clustering()
     phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
     phase2 = cl.getRepresentativePhases(label2,COLLAPSE_FACTOR,heatmap2.T)
-    print(len(phase1),len(phase2),len(set(label2)))
-    for i in set(label2):
-        print(phase1[map_centroids[i]].shape,phase2[i].shape)
-        a = phase1[map_centroids[i]]#.reshape(-1,1)
-        b = phase2[i]#.reshape(-1,1)
-        reshape_size = (HEIGHT,200)
-        a = resize(a,reshape_size)
-        b = resize(b,reshape_size)
-        hg.compareHeatmaps(a**4,b**4,"cluster-"+str(map_centroids[i]),save,"cluster-"+str(i),titles=("standard",name2),metric=metric)
+    print(centroid1.shape,type(centroid1))
+    #label2 = [i if i != 90 else 94 for i in label2]
+    
+    b = make_heatmap(phase1,label2)
+    # print(np.array(b).shape)
+    print(b.shape)
+    # print(heatmap2)
+    # print(a.shape,heatmap2.shape,type(a))
+    # hg.getHeatmapFigure(heatmap2.T,"echo")
+    # hg.getHeatmapFigure(b.T,"echo")
+    # print(heatmap2.shape)
+    hg.compareHeatmaps((heatmap2.T,b.T),name2,False,titles=('orig','frankenstein'),metric=metric)
+    start = 670
+    end = 695
+    print(label2)
+    print(label2[start:end])
+    print(len(set(label2[start:end])))
+    prev = None
+    surroundings = set()
+    for i in label2[600:700]:
+        if prev != None and prev == 94:
+            surroundings.add(i)
+        if i == 94 and prev != None:
+            surroundings.add(prev)
+        prev=i
+    print(surroundings)
+    
+    # hg.compareHeatmaps([phase1[i] for i in set(label2[start:end])],name2,False,titles=[str(i) for i in set(label2[start:end])])
+    reshape_size = (HEIGHT,200)
+    # for i in surroundings:
+    #     hg.compareHeatmaps([resize(phase1[94],reshape_size),resize(phase1[i],reshape_size)],name2,False,titles=['94',str(i)])
+    # hg.compareHeatmaps([resize(phase1[94],reshape_size),resize(phase1[90],reshape_size)],name2,False,titles=['94','90'])
+    # print(len(phase1),len(phase2),len(set(label2)))
+    # print(set(label2))
+    # for c,i in enumerate(set(label2)):
+    #     print(c,i)
+    #     print(phase1[i].shape,phase2[c].shape)
+    #     a = phase1[i]#.reshape(-1,1)
+    #     b = phase2[c]#.reshape(-1,1)
+    #     reshape_size = (HEIGHT,200)
+    #     a = resize(a,reshape_size)
+    #     b = resize(b,reshape_size)
+    #     hg.compareHeatmaps(a**4,b**4,"cluster-"+str(i),save,"cluster-"+str(i),titles=("standard",name2),metric=metric)
 
 def p(s="",f=None,end="\n"):
     if f == None:
         print(s)
     if f:
         f.write(s+end)
+
+def shift_and_score(a,b):
+    first_activity_b = np.nonzero(b)[0][0]
+    first_activity_a = np.nonzero(a)[0][0]
+    
+    shifted = np.roll(a,first_activity_b-first_activity_a)
+    # print(len(shifted))
+    # print(len(b))
+    return np.linalg.norm(shifted-b)
+
 def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_file=None):
-    label1,centroid1,cluster1,heatmap1,size_names = gen_cluster(names,k,False,dist=metric,verbose=verbose)
+    label1,centroid1,cluster1,heatmap1,size_names = gen_cluster(names,k,False,dist=metric,verbose=verbose,method='kmeans')
     f = None
     if log_file != None:
         f = open("./logs/"+log_file+".log",'w')
@@ -156,43 +247,94 @@ def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_f
     # print(size_names)
     # print(sum(size_names),len(heatmap1))
     k2 = 8
-    label2,centroid2,cluster2,heatmap2,_ = gen_cluster(name2,k2,False,dist=metric)
+    label2,centroid2,cluster2,heatmap2,_ = gen_cluster(name2,k2,False,dist=metric,method='kmeans')
     #print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
     
     #map_centroids,map_labels = calc_mapping(cluster1,centroid1,heatmap2,save=save)[0]
+    #knn = KNN(n_neighbors=11,metric=konda_score).fit(heatmap1,label1)
+    cl = Clustering()
+    phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
     map_centroids = cluster1.predict(centroid2)
+    #map_new_standard = knn.predict(heatmap2)
+    # map_new_standard = []
+    # print(heatmap2.shape)
+    # print(centroid1.shape)
+    # for i in heatmap2:
+    #     score = None
+    #     score_ind = 0
+    #     for c,j in enumerate(centroid1):
+    #         # print(i.shape,j.shape)
+    #         s = shift_and_score(j,i)
+    #         if score == None or s<score:
+    #             score = s
+    #             score_ind = c
+    #     map_new_standard.append(score_ind)
+            
+    # print(len(map_new_standard))
     map_new_standard = cluster1.predict(heatmap2)
+
+    # orig = cluster1.predict(heatmap2)
+    # map_new_standard = []
+    # for i in heatmap2:
+    #     smallest = None
+    #     small_ind = 0
+    #     for c,phase in enumerate(centroid1):
+    #         #score = np.linalg.norm(i-phase)
+    #         score = konda_score(i,phase)
+    #         if smallest == None or score<smallest:
+    #             smallest = score
+    #             small_ind = c
+    #     map_new_standard.append(small_ind)
+    # for i in heatmap2:
+    #     smallest = None
+    #     small_ind = 0
+    #     for c,phase in enumerate(phase1):
+    #         phase = phase.T
+    #         for j in phase:
+    #             if smallest == None or konda_score(i,j)<smallest:
+    #                 smallest = konda_score(i,j)
+    #                 small_ind = c
+    #     map_new_standard.append(small_ind)
+    #print(len(orig),len(map_new_standard))
     #distances = np.array([euclidean_distances(centroid1[i].reshape(1,-1),heatmap2[c].reshape(1,-1)).item() for c,i in enumerate(map_new_standard)  ])
     cluster_dict = {}
     for c,i in enumerate(map_new_standard):
         if i not in cluster_dict:
             cluster_dict[i] = []
         cluster_dict[i].append(euclidean_distances(centroid1[i].reshape(1,-1),heatmap2[c].reshape(1,-1)).item())
-    p("unique clusters: " + str(len(set(map_new_standard))),f)
-    p(f=f)
-    for key in cluster_dict.keys():
-        p("Cluster: " +str(key),f)
-        distances = np.array(cluster_dict[key])
-        p("number of items: " +str(len(distances)),f)
-        p("average_distance: " + str(np.mean(distances)),f)
-        p("standard deviation: " + str(np.std(distances)),f)
-        p(f=f)
+    # p("unique clusters: " + str(len(set(map_new_standard))),f)
+    # p(f=f)
+    # for key in cluster_dict.keys():
+    #     p("Cluster: " +str(key),f)
+    #     distances = np.array(cluster_dict[key])
+    #     p("number of items: " +str(len(distances)),f)
+    #     p("average_distance: " + str(np.mean(distances)),f)
+    #     p("standard deviation: " + str(np.std(distances)),f)
+    #     p(f=f)
+    # # p(silhouette_score(heatmap1,label1))
+    # # p(silhouette_score(heatmap2,map_new_standard))
+    # p()
     # print("average_distance: " + str(np.mean(distances)))
     # print("standard deviation: " + str(np.std(distances)))
     if save:
         to_file(label1,names,size_names)
         to_file(map_new_standard,name2)
+        cl = Clustering()
+        rep_phases = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
+        pickle.dump(rep_phases,open("phases.pkl",'wb'))
+        # pickle.dump(heatmap2,open(".pkl",'wb'))
     if viz:
-        visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,map_centroids,False,metric)
+        visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,map_new_standard,False,metric)
         plt.figure()
     if f!=None:
         f.close()
-    
 
-names = ["cat","cp","echo","findmnt","git","ls"]
-name2 = "mkdir"
+# names = ["cat","cp","echo","findmnt","git","ls"]
+# name2 = "mkdir"
+name2 = "echo"
+names = ['cat','cp','findmnt','git','ls','mkdir']
 k=120
 metric = 'euclidean'
 
 if __name__ == "__main__":
-   gen(names,name2,k,metric,save=True,viz=False,log_file="test")
+   gen(names,name2,k,metric,save=True,viz=True)
