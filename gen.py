@@ -19,10 +19,12 @@ import matplotlib.patches as mpatches
 from sklearn.cluster import AffinityPropagation
 from sklearn.cluster import AgglomerativeClustering
 from skimage.metrics import mean_squared_error as mse
+from skimage.metrics import structural_similarity as ssim
 from sklearn.neighbors import KNeighborsClassifier as KNN
 from scipy.ndimage.interpolation import shift
+from bars import make_bars
 #dist = DistanceMetric.get_metric('minkowski',p=2)
-
+os.chdir('/home/mkondapaneni/Research/tracewringing_phase_predict/')
 # NAME = sys.argv[1]
 NAME = 'gcc-1B'
 # NAME = 'gzip'
@@ -33,8 +35,10 @@ ID = '1'
 WINDOW_SIZE = 100
 HEIGHT = 2048
 COLLAPSE_FACTOR = 1
-def konda_score(heatmap1,heatmap2):
+def custom_score(heatmap1,heatmap2):
     assert heatmap1.shape == heatmap2.shape
+    # heatmap1-=np.mean(heatmap1)
+    # heatmap2-= np.mean(heatmap2)
     base = np.zeros(heatmap1.shape)
     total_both_zeros = np.sum(np.logical_and(heatmap1==base,heatmap2==base))
     total_points = heatmap1.shape[0]
@@ -67,11 +71,14 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
             hm_matrix = generate_heatmap(wl_path, HEIGHT, WINDOW_SIZE, hm_path)
         if len(heatmap_fig) == 0:
             heatmap_fig = np.sqrt( np.sqrt( hm_matrix ))
+            #heatmap_fig = hm_matrix
       
         else:
-           heatmap_fig = np.append(heatmap_fig,(np.sqrt( np.sqrt( hm_matrix ))),axis=1)
+            heatmap_fig = np.append(heatmap_fig,(np.sqrt( np.sqrt( hm_matrix ))),axis=1)
+            #heatmap_fig = np.append(heatmap_fig,hm_matrix,axis=1)
         # print(hm_matrix.shape,heatmap_fig.shape)
         sizes.append(len(hm_matrix.T))
+    # heatmap_fig-=np.mean(heatmap_fig)
     if os.path.exists(cl_path):
         with open(cl_path,'rb') as f:
             clusters = pickle.load(f)
@@ -87,7 +94,7 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
         if pca:
             heatmap = PCA(n_components=500).fit_transform(heatmap)
         if method == 'kmeans':
-            print(heatmap.shape)
+            #print(heatmap.shape)
             clusters = cl.kmeans(clusters,COLLAPSE_FACTOR,heatmap.T)
         if method == 'aff_prop':
             print(heatmap.astype('float32').dtype)
@@ -149,7 +156,7 @@ def make_heatmap(phases,labels):
             curr_count = 0
         #print(i,phase1[i].T.shape,curr_count)
         if phases[i].T.shape[0] <= curr_count:
-            print(i,c,curr_count,phases[i].T.shape)
+            #print(i,c,curr_count,phases[i].T.shape)
             curr_count=0
         b.append(phases[i].T[curr_count])
         curr_count+=1
@@ -157,6 +164,18 @@ def make_heatmap(phases,labels):
     #print(counts)
     return np.array(b)
 
+def mse_scaled(a,b,scale=1):
+    #return scale*mse(a,b)
+    return 0
+    #return np.linalg.norm(a.flatten()-b.flatten(),ord=2)
+def norm_ssim(a,b,scale=1):
+    a1 = a-np.mean(a)
+    b1 = b-np.mean(b)
+    return one_minus(a1,b1)
+def one_minus(a,b):
+    r =max(np.max(a),np.max(b))-min(np.min(a),np.min(b))
+    #print(max(np.max(a),np.max(b)),min(np.min(a),np.min(b)))
+    return (1-ssim(a,b,data_range=r))
 
 
 def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,save=False,metric="euclidean"):
@@ -180,6 +199,7 @@ def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,sa
     phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
     phase2 = cl.getRepresentativePhases(label2,COLLAPSE_FACTOR,heatmap2.T)
     print(centroid1.shape,type(centroid1))
+    
     #label2 = [i if i != 90 else 94 for i in label2]
     
     b = make_heatmap(phase1,label2)
@@ -190,7 +210,28 @@ def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,sa
     # hg.getHeatmapFigure(heatmap2.T,"echo")
     # hg.getHeatmapFigure(b.T,"echo")
     # print(heatmap2.shape)
-    hg.compareHeatmaps((heatmap2.T,b.T),name2,False,titles=('orig','frankenstein'),metric=metric)
+    path='figs/compare/euclidean/'+name2
+    print(np.mean(heatmap2),np.mean(b),np.std(heatmap2),np.std(b))
+    print(np.max(heatmap2),np.min(heatmap2),np.max(b),np.min(b))
+    # heatmap2-=np.mean(heatmap2)
+    # b-=np.mean(b)
+    print(np.std(b),np.std(heatmap2))
+    hg.compareHeatmaps((heatmap2.T,b.T),name2,False,titles=('orig','frankenstein'),path=path)
+    # hg.getHeatmapFigure(heatmap2.T,"findmnt")
+    # hg.getHeatmapFigure(b.T,"findmnt")
+    funcs = (norm_ssim,mse,one_minus)
+    # ssim(heatmap2,b)
+    metric_compare = [[i(heatmap2,b) for i in funcs],[i(heatmap2,np.zeros(heatmap2.shape)) for i in funcs],[ i(heatmap2,np.random.rand(heatmap2.shape[0],heatmap2.shape[1])) for i in funcs], [ i(b,np.random.rand(heatmap2.shape[0],heatmap2.shape[1])) for i in funcs]]
+    
+    # metric_compare = [[i(heatmap2,b),i(heatmap2,np.zeros(heatmap2.shape))] for c in enumerate(funcs)]
+    
+    print(metric_compare)
+    names = ['1-SSIM (Mean Centered Heatmap)','MSE','1-SSIM',]
+    labels = ['Frankenstein v Original','All White v Original','Random v Original','Random v Frankenstein']
+    title = 'Metric Comparison for '+name2
+    #make_bars(metric_compare,labels,names,title=title)
+    #plt.savefig(path+'/'+name2+'_metric_comparison.png')
+    #plt.show()
     start = 670
     end = 695
     print(label2)
@@ -251,10 +292,11 @@ def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_f
     #print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
     
     #map_centroids,map_labels = calc_mapping(cluster1,centroid1,heatmap2,save=save)[0]
-    #knn = KNN(n_neighbors=11,metric=konda_score).fit(heatmap1,label1)
+    #knn = KNN(n_neighbors=11,metric=custom_score).fit(heatmap1,label1)
     cl = Clustering()
     phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
     map_centroids = cluster1.predict(centroid2)
+    
     #map_new_standard = knn.predict(heatmap2)
     # map_new_standard = []
     # print(heatmap2.shape)
@@ -272,7 +314,7 @@ def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_f
             
     # print(len(map_new_standard))
     map_new_standard = cluster1.predict(heatmap2)
-
+    
     # orig = cluster1.predict(heatmap2)
     # map_new_standard = []
     # for i in heatmap2:
@@ -280,20 +322,27 @@ def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_f
     #     small_ind = 0
     #     for c,phase in enumerate(centroid1):
     #         #score = np.linalg.norm(i-phase)
-    #         score = konda_score(i,phase)
+    #         score = custom_score(i,phase)
     #         if smallest == None or score<smallest:
     #             smallest = score
     #             small_ind = c
     #     map_new_standard.append(small_ind)
-    # for i in heatmap2:
+    # map_new_standard = []
+    # for count,i in enumerate(heatmap2):
     #     smallest = None
     #     small_ind = 0
+    #     #print(count)
     #     for c,phase in enumerate(phase1):
-    #         phase = phase.T
-    #         for j in phase:
-    #             if smallest == None or konda_score(i,j)<smallest:
-    #                 smallest = konda_score(i,j)
-    #                 small_ind = c
+    #         # phase = phase.T
+    #         # if phase.shape[1]>=30:
+    #         #     hg = HeatmapGenerator()
+    #         #     hg.compareHeatmaps((phase,resize(i,phase.shape)),name2,False,titles=('orig','frankenstein'))
+    #         #     exit()
+    #         #print(phase.shape,resize(i,phase.shape).shape)
+    #         s = mse(resize(i,phase.shape),phase)
+    #         if smallest == None or s <= smallest:
+    #             smallest = s
+    #             small_ind = c
     #     map_new_standard.append(small_ind)
     #print(len(orig),len(map_new_standard))
     #distances = np.array([euclidean_distances(centroid1[i].reshape(1,-1),heatmap2[c].reshape(1,-1)).item() for c,i in enumerate(map_new_standard)  ])
@@ -333,6 +382,12 @@ def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_f
 # name2 = "mkdir"
 name2 = "echo"
 names = ['cat','cp','findmnt','git','ls','mkdir']
+# name2 = "findmnt"
+# names = ['cat','cp','echo','git','ls','mkdir']
+# name2 = "git"
+# names = ['cat','cp','echo','findmnt','ls','mkdir']
+# name2 = "ls"
+# names = ['cat','cp','echo','findmnt','git','mkdir']
 k=120
 metric = 'euclidean'
 

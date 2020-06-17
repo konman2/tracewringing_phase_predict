@@ -7,16 +7,16 @@ from random import randint
 from net import TraceGen
 from torch.utils.data import DataLoader
 from torch import nn
-from gen import k
+from gen import k,make_heatmap
 from clean import seq_len
 from train import params
+from tracewringing.heatmap_generator import HeatmapGenerator
 name = sys.argv[1]
 dev = "cpu"
 if torch.cuda.is_available():
     dev="cuda:0"
 device = torch.device(dev)
-map_new_standard = np.array(pickle.load(open("map_new_standard.pkl",'rb')))
-map_standard_new = np.array(pickle.load(open("map_standard_new.pkl",'rb')))
+
 def load_doc(filename):
     # open the file as read only
     file = open(filename, 'r')
@@ -55,23 +55,27 @@ def generate_seq(model, seq_length, first_seq, n_words):
         result.append(yhat)
     return result
 
-lib = pickle.load(open('lib.pkl','rb'))
-words = pickle.load(open('words.pkl','rb'))
-PATH = './models/epoch_8.pth'
+
+PATH = './models/echo/epoch_7_0.933.pth'
 
 in_filename = "phases/"+name+'.phase'
 doc = load_doc(in_filename)
 lines = doc.split('\n')
-print(lines)
+#print(lines)
 
-first_seq = [map_new_standard[int(i)] for i in lines[:seq_len]]
+first_seq = [int(i) for i in lines[seq_len:seq_len*2]]
 model = TraceGen(params[0],params[1],params[2])
 model.load_state_dict(torch.load(PATH))
 model.to(device)
 model.eval()
-
+result = [int(i) for i in lines[:seq_len]]
+print(result)
 print(first_seq)
-result = generate_seq(model,seq_len,first_seq,len(lines)-seq_len)
+phases = pickle.load(open('phases.pkl','rb'))
+result.extend(generate_seq(model,seq_len,first_seq,len(lines)-seq_len*2-1))
 print()
 print(result)
 print(len(result))
+heatmap = make_heatmap(phases,result)
+hg = HeatmapGenerator()
+hg.getHeatmapFigure(heatmap.T**2,name)

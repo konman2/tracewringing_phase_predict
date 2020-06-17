@@ -60,7 +60,7 @@ class HeatmapGenerator(object):
         """
         import matplotlib.pyplot as plt
         from matplotlib import cm
-        plt.figure(figsize=(10,10),dpi=120)
+        plt.figure(dpi=120)
         plt.ylabel('Projected Address')
         plt.xlabel(xaxis+' Instructions')
         plt.imshow(heatmap_matrix,cmap=cm.gray_r) #plt.imshow(k,cmap=cm.Greys, interpolation='nearest')
@@ -70,11 +70,12 @@ class HeatmapGenerator(object):
             plt.savefig('./figs/heatmaps/'+name+'.png') 
             print('Heatmap figure saved..')
         else:
+            plt.tight_layout()
             plt.show()
         plt.close()
 
     
-    def compareHeatmaps(self, heatmap_orig, heatmap_new, name,save=False,name2=None,titles=("source","proxy"),metric=""):
+    def compareHeatmaps(self, heatmaps, name,save=False,titles=("source","proxy"),path=None,four=False):
         """ Figure of two heatmaps, for side by side comparison. 
         
         Arguments:
@@ -83,23 +84,27 @@ class HeatmapGenerator(object):
         """
         import matplotlib.pyplot as plt
         from matplotlib import cm
-        if name2 == None:
-            name2 = name
         #(15,18)
-        f, ax = plt.subplots(1,2, figsize=(15,18), sharex=True,frameon=True)
-        ax[0].imshow(np.sqrt(np.sqrt(heatmap_orig)),cmap=cm.gray_r)
-        ax[0].set_title('Heatmap of {} trace: {}'.format(titles[0],name))
-        ax[0].axis('off')
-        ax[1].imshow(np.sqrt(np.sqrt(heatmap_new)),cmap=cm.gray_r)
-        ax[1].set_title('Heatmap of {} trace: {}'.format(titles[1],name2))
-        ax[1].axis('off')
-        plt.tight_layout()
-        print(name,name2,titles)
-        if save == True:
-            if not os.path.exists('./figs/compare/'+metric+"/"+titles[1]):
-                os.makedirs('./figs/compare/'+metric+"/"+titles[1])
-            plt.savefig('./figs/compare/'+metric+"/"+titles[1]+"/"+titles[0]+":"+name+"-"+titles[1]+":"+name2+'.png') 
-            print('Comparison of heatmaps: Figure saved..')
+        if four:
+            f,ax = plt.subplots(2,2,figsize=(15,9.9),sharex=True,frameon=True)
+            ax = ax.flatten()
+        elif heatmaps[0].shape[0] <= heatmaps[0].shape[1]:
+            f, ax = plt.subplots(len(heatmaps),1, figsize=(15,9.9), sharex=True,frameon=True)
         else:
+            f, ax = plt.subplots(1,len(heatmaps), figsize=(15,9.9), sharex=True,frameon=True)
+        for c,i in enumerate(heatmaps):
+            # ax[c].imshow(np.sqrt(np.sqrt(i)),cmap=cm.gray_r)
+            ax[c].imshow(i,cmap=cm.gray_r)
+            ax[c].set_title('Heatmap of {} trace: {}'.format(titles[c],name))
+            #ax[c].axis('off')
+        plt.tight_layout()
+        if save == True and path != None:
+            if not os.path.exists(path):
+                os.makedirs(path)
+            print(path)
+            plt.savefig(path+'/'+name+'_comparison.png') 
+            print('Comparison of heatmaps: Figure saved at ' + path)
+        else:
+            print("No Path")
             plt.show()
         plt.close()

@@ -19,7 +19,7 @@ from skimage.metrics import mean_squared_error as mse
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from sklearn.metrics.pairwise import euclidean_distances
 from scipy.spatial.distance import euclidean
-
+from gen import norm_ssim,one_minus
 dev = ""
 if torch.cuda.is_available():
     dev="cuda:0"
@@ -65,16 +65,6 @@ def val(model,X_val,y_val,top5,a):
             guess_mode+=1
     total=len(y_val)
     return correct,guess_mode,total
-def metric(heatmap1,heatmap2):
-    assert heatmap1.shape == heatmap2.shape
-    base = np.zeros(heatmap1.shape)
-    total_both_zeros = np.sum(np.logical_and(heatmap1==base,heatmap2==base))
-    total_points = heatmap1.shape[0]*heatmap1.shape[1]
-    score = mse(heatmap1,heatmap2)*total_points
-    #return np.sqrt(np.sqrt((np.linalg.norm(heatmap1.flatten()-heatmap2.flatten(),4)/total_points)))
-    if total_both_zeros == total_points:
-        return 0.0
-    return score/(total_points-total_both_zeros)
 
 def train(val_name,params,log_file=None):
     in_filename = 'sequences/group_seq.txt'
@@ -102,13 +92,6 @@ def train(val_name,params,log_file=None):
     print("sequence length:",len(X[0]))
     print(model)
     model.to(device)
-    # dict_file = open('lib.pkl',"wb")
-    # pickle.dump(lib,dict_file)
-    # dict_file.close()
-    # word_file = open("words.pkl","wb")
-    # pickle.dump(words,word_file)
-    # word_file.close()
-    # X = torch.from_numpy(X)
     y = torch.tensor(y,dtype=torch.long).to(device)
     y_val = torch.tensor(y_val,dtype=torch.long)
     print(y)
@@ -157,12 +140,13 @@ def train(val_name,params,log_file=None):
     perfect_score = 0.0
     mode_score = 0.0 
     all_background_score = 0.0
+    best_single_precision = 0.0
+    mode_single_precision = 0.0
     cluster_map = None
     orig_heatmap = None
     best_map = None
     mode_map =  None
     #random_noise_score = 0.0
-
     for epoch in range(epochs):
         model.train()
         start = time.time()
@@ -194,6 +178,9 @@ def train(val_name,params,log_file=None):
         correct = 0.0
         total = 0.0
         guess_mode = 0.0 
+        guess_input_mode = 0.0
+        total_input_mode = 0.0
+        guess_single = 0.0
         predictions = []
         answers = []
         transition_correct = 0.0
@@ -212,7 +199,9 @@ def train(val_name,params,log_file=None):
                 #yhat = torch.max(yhat,dim=1)[1]
                 # print(torch.topk(yhat,5,dim=1))
                 # exit()
+                y_max = torch.max(yhat,dim=1)[1]
                 yhat = torch.topk(yhat,5,dim=1)[1]
+                
                 #print(yhat)
                 predictions.extend(torch.flatten(yhat).tolist())
                 answers.extend(torch.flatten(y).tolist())
@@ -225,6 +214,12 @@ def train(val_name,params,log_file=None):
                         transition_total+=1
                         if i in yhat[c]:
                             transition_correct+=1
+                    if mode != i:
+                        total_input_mode += 1
+                    if y_max[c] ==  i:
+                        guess_single+=1
+                    if mode == i:
+                        guess_input_mode+=1
                     if i in yhat[c]:
                         correct+=1
                     if i in top5:
@@ -246,15 +241,16 @@ def train(val_name,params,log_file=None):
         heatmap2 = make_heatmap(phases,pred_one)
         #heatmap_rand = np.random.rand(heatmap1.shape[0],heatmap1.shape[1])
         # mdist = np.mean(np.linalg.norm(heatmap1-heatmap2,axis=1))
-        mdist = metric(heatmap1,heatmap2)
+        mdist = norm_ssim(heatmap1,heatmap2)
         hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps/{}'.format(val_name)
         heatmap_orig = np.sqrt(np.sqrt(pickle.load(open(hm_path,'rb')).T[:heatmap1.shape[0]]))
-        mdist_orig_cluster = metric(heatmap_orig,heatmap1)
-        mdist_orig_lstm = metric(heatmap_orig,heatmap2)
+        mdist_orig_cluster = norm_ssim(heatmap_orig,heatmap1)
+        mdist_orig_lstm = norm_ssim(heatmap_orig,heatmap2)
         results ='[%d,%5d] loss: %.3f accuracy:%.3f transition accuracy: %.3f precision: %.5f,guess mode acc: %.3f,recall: %0.3f, score: %0.5f, perfect score: %0.5f orig compare: %0.5f'  % (epoch+1,epochs,running_loss,train_correct/train_total,transition_correct/transition_total,correct/total,guess_mode/total,len(set(predictions))/len(set(answers)),mdist,mdist_orig_cluster,mdist_orig_lstm)+" time= "+str(end)
         print(results)
+        print(transition_correct,transition_total)
+        print(total_input_mode,guess_input_mode,guess_input_mode/total,guess_single,guess_single/total)
         heatmap_modes = make_heatmap(phases,pred_mode)
-        print(metric(heatmap1,np.zeros(heatmap1.shape)),metric(heatmap_orig,heatmap_modes),metric(heatmap_orig,np.zeros(heatmap1.shape)))
         if best_score == None or mdist<best_score:
             precision = correct/total
             base_model = guess_mode/total
@@ -263,12 +259,14 @@ def train(val_name,params,log_file=None):
             best_score  = mdist
             best_orig_score = mdist_orig_lstm
             perfect_score = mdist_orig_cluster
-            mode_score = metric(heatmap_orig,heatmap_modes)
-            all_background_score = metric(heatmap_orig,np.zeros(heatmap1.shape))
+            mode_score = norm_ssim(heatmap_orig,heatmap_modes)
+            all_background_score = norm_ssim(heatmap_orig,np.zeros(heatmap1.shape))
             cluster_map = heatmap1
             orig_heatmap = heatmap_orig
             mode_map= heatmap_modes
             best_map = heatmap2
+            mode_single_precision = guess_input_mode/total
+            best_single_precision = guess_single/total
         if log_file != None:
             f.write(results+"\n")
         # print(pred_one)
@@ -284,6 +282,7 @@ def train(val_name,params,log_file=None):
                 corr+=1
             else:
                 diff.append((answers[c],i))
+        
         # print(answers[23:43])
         # print(pred_one[23:43])
         # print(corr/len(answers))
@@ -304,17 +303,18 @@ def train(val_name,params,log_file=None):
         #     h1 = resize(h1,reshape_size)
         #     h2 = resize(h2,reshape_size)
         #     hg.compareHeatmaps(h1,h2,"cluster-"+str(a)+' '+str(b),False)
-        
-
+        #hg.compareHeatmaps((np.sqrt(np.sqrt(orig_heatmap.T)),np.sqrt(np.sqrt(cluster_map.T)),np.sqrt(np.sqrt(best_map.T)),np.sqrt(np.sqrt(mode_map.T))),val_name,titles=('original','perfect lstm','lstm','modes'),save=log_file!=None,path='figs/train/'+val_name)
+        # hg.compareHeatmaps((orig_heatmap.T,cluster_map.T,best_map.T,mode_map.T),val_name,titles=('original','perfect clustering','lstm','modes'),save=log_file!=None,path='figs/train/'+val_name)
         torch.save(model.state_dict(),path+"/epoch_%d_%.3f.pth" %(epoch,mdist))    
-    
+        #hg.compareHeatmaps((orig_heatmap.T,cluster_map.T,best_map.T,mode_map.T),val_name,titles=('original','perfect lstm','lstm','modes'),save=log_file!=None,path='figs/train/'+val_name+'/norm',four=True)
     print("done training")
     torch.save(model.state_dict(),path+"/epoch_%d_%.3f.pth" %(epoch,mdist))  
     if f != None:
         f.close()
-    hg.compareHeatmaps((orig_heatmap.T,cluster_map.T,best_map.T,mode_map.T),val_name,titles=('original','perfect clustering','lstm','modes'),save=log_file!=None,path='figs/train/'+val_name)
+    hg.compareHeatmaps((orig_heatmap.T,cluster_map.T,best_map.T,mode_map.T),val_name,titles=('original','perfect lstm','lstm','modes'),save=log_file!=None,path='figs/train/'+val_name+'/norm',four=True)
+    # hg.compareHeatmaps((np.sqrt(np.sqrt(orig_heatmap.T)),np.sqrt(np.sqrt(cluster_map.T)),np.sqrt(np.sqrt(best_map.T)),np.sqrt(np.sqrt(mode_map.T))),val_name,titles=('original','perfect lstm','lstm','modes'),save=log_file!=None,path='figs/train/'+val_name)
     return precision,recall,transition_p,base_model,best_score,perfect_score,best_orig_score,mode_score,all_background_score
-    
+    #return best_single_precision,mode_single_precision
 params = [k,k,200,True]
 if __name__ == "__main__":
     train(name2,params)

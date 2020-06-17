@@ -1,14 +1,15 @@
 import numpy as np
 import time
 import pickle
-lib = pickle.load(open('lib_markov.pkl','rb'))
-lib_ind = {}
-l_count = 0
-start = time.time()
-print(lib)
+
 def compute():
-    global l_count
-    global start
+    lib = pickle.load(open('/home/mkondapaneni/Research/tracewringing_phase_predict/lib_markov2.pkl','rb'))
+    lib_ind = {}
+    l_count = 0
+    start = time.time()
+    print(lib)
+    # global l_count
+    # global start
     s = start
     for w,d in lib.items():
         if (l_count)%100 == 0:
@@ -29,10 +30,11 @@ def compute():
             p = p/np.sum(p)
             lib_ind[w] = (words,p)
         l_count+=1
+        dict_file = open('/home/mkondapaneni/Research/tracewringing_phase_predict/lib2.pkl',"wb")
+        pickle.dump(lib_ind,dict_file)
+        dict_file.close()
+        print(lib_ind)
 
-compute()
-dict_file = open('lib2.pkl',"wb")
-pickle.dump(lib_ind,dict_file)
-dict_file.close()
-print(lib_ind)
+
+
                     

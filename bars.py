@@ -3,36 +3,55 @@ import pickle
 import matplotlib
 import numpy as np
 
-labels,average_cluster_distances,precision,recall,transition_precision,base_model,score,perfect_score,original_score,mode_score,background_score = pickle.load(open('model_performance.pkl','rb'))
 
 
-x = np.arange(len(labels))  # the label locations
-width = 0.1  # the width of the bars
+def make_bars(metrics,labels,names,params=None,title='Performance of Model on Program'):
+    x = np.arange(len(names))  # the label locations
+    width = 0.1  # the width of the bars
+    fig, ax = plt.subplots()
+    for i in range(len(labels)):
+        # print(len(labels)//2-i,metrics[i])
+        if params is None:
+            ax.bar(x-(len(labels)//2-i)*width,metrics[i],width,label=labels[i])
+        else:
+            ax.bar(x-(len(labels)//2-i)*width,metrics[i],width,label=labels[i], **params[i])
+    lim = ax.get_ylim()
+    ax.set_ylim([0,lim[1]+0.3])
+    ax.set_ylabel(title,fontsize=18)
+    ax.set_title(title,fontsize=18)
+    ax.set_xticks(x)
+    #ax.set_yscale()
+    ax.set_xticklabels(names,fontsize=18)
+    ax.legend(fontsize=14)
+    fig.tight_layout()
 
-fig, ax = plt.subplots()
-# rects1 = ax.bar(x - 2*width, np.array(average_cluster_distances)/10, width, label='average cluster distance/10')
-# rects2 = ax.bar(x-width, precision, width, label='precision')
-# rects3 = ax.bar(x , recall, width, label='recall')
-# rects4 = ax.bar(x + width, transition_precision, width, label='transition precision')
-# rects5 = ax.bar(x + width*2, base_model, width, label='top5')
-rects1 = ax.bar(x - 2*width, score, width, label='score from perfect cluster')
-rects3 = ax.bar(x-width ,  original_score,width, label='score from original')
-rects2 = ax.bar(x, perfect_score, width, label='theoretical_best(perfect cluster)')
-rects4 = ax.bar(x + width, mode_score, width, label='mode_score')
-rects5 = ax.bar(x + width*2, background_score, width, label='white_background')
+if __name__ == '__main__':
+    # names,scores= list(pickle.load(open('model_performance.pkl','rb')))
+    names,scores= list(pickle.load(open('mp2.pkl','rb')))
+    # names = scores[0]
+    # scores = scores[2:]
+    # print(names,scores)
 
+    metric_names=('precision at 5',
+    'recall at 5', 
+    'transition precision at 5', 
+    'top5',
+    'distance from perfect lstm', 
+    'theoretical best(perfect lstm)',
+    'distance from original',
+    'mode distance from original',
+    'white background')
 
-# Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Performance')
-ax.set_title('Performance of Model on Program')
-ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend()
-fig.tight_layout()
-
-
-
-plt.show()
+    metric_names = ['precision lstm','precision mode', 'precision markov chain']
+    # print(scores)
+    # params=[{'hatch': '//', 'alpha':0.5}]
+    # for i in metric_names[4:]:
+    #     params.append({})
+    # make_bars(scores[:4],metric_names[:4],names,title="Prediction Performance of Model on Program")
+    # #plt.figure()
+    # make_bars(scores[4:],metric_names[4:],names, params, title='Image distance of Model on Program')
+    make_bars(scores,metric_names,names,title='LSTM comparison')
+    plt.show()
 
 
 
