@@ -105,6 +105,7 @@ ENV/
 *.txt
 *.trace
 heatmaps/
+heatmaps2/
 hough_lines/
 proxy/
 sweep/
@@ -115,3 +116,4 @@ packets/
 clusters/
 figs/
 models/
+clusters2/

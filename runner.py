@@ -7,8 +7,9 @@ import pickle
 from markov_chain.markov import markov
 from markov_chain.compute_prob import compute
 from markov_chain.guess import guess1
-
+import names
 overall_names = ["cat","cp","echo","findmnt","git","ls","mkdir"]
+
 k=120
 metric = 'euclidean'
 average_cluster = []

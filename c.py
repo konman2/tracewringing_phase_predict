@@ -21,6 +21,8 @@ from sklearn.cluster import AgglomerativeClustering
 from skimage.metrics import mean_squared_error as mse
 from skimage.metrics import structural_similarity as ssim
 from sklearn.neighbors import KNeighborsClassifier as KNN
+import hdbscan
+
 #from scipy.ndimage.interpolation import shift
 from bars import make_bars
 #dist = DistanceMetric.get_metric('minkowski',p=2)
@@ -62,7 +64,7 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
     cl_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/clusters/{}/{}'.format(method,"polytest2-"+str(clusters))
     for name in names:
         wl_path =  '/home/mkondapaneni/Research/tracewringing_phase_predict/traces/{}.trace'.format(name)
-        hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps/{}'.format(name)
+        hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps2/{}'.format(name+"-"+str(WINDOW_SIZE))
         if os.path.exists(hm_path):
             with open(hm_path,'rb') as f:
                 hm_matrix = pickle.load(f)
@@ -98,39 +100,8 @@ def gen_cluster(names,clusters,show=False,dist='euclidean',pca=False,verbose=Fal
         # print(hm_matrix.shape,heatmap_fig.shape)
         sizes.append(len(hm_matrix.T))
     # heatmap_fig-=np.mean(heatmap_fig)
-    print("Clustering...")
     #print(cl_path)
-    if os.path.exists(cl_path):
-        with open(cl_path,'rb') as f:
-            clusters = pickle.load(f)
-        if verbose:
-            print("WARNING using cluster at " +cl_path)
-    else:
-        
-        cl = Clustering()
-        heatmap = heatmap_fig.T
-        if dist == "cosine":
-            normalizer = Normalizer()
-            heatmap = normalizer.fit_transform(heatmap)
-        if pca:
-            heatmap = PCA(n_components=500).fit_transform(heatmap)
-        if method == 'kmeans':
-            #print(heatmap.shape)
-            print(heatmap_fig.shape,heatmap_shifted.shape)
-            clusters = cl.kmeans(clusters,COLLAPSE_FACTOR,heatmap_shifted)
-        if method == 'aff_prop':
-            print(heatmap.astype('float32').dtype)
-            aff_prop = AffinityPropagation(damping=0.5).fit(heatmap.astype('float32'))
-            clusters = (aff_prop.labels_,aff_prop.cluster_centers_,aff_prop)
-        with open(cl_path, 'wb') as f:
-            pickle.dump(clusters,f)
-    labels,centroids,cluster = clusters
-    # print(np.array_equal(heatmap_fig,heatmap.T))
-    # hg  = HeatmapGenerator()
-    # hg.compareHeatmaps(heatmap_fig,heatmap.T,"-".join(names))
-    if show:
-        cl.getClusterFigure(labels,heatmap_fig,COLLAPSE_FACTOR,HEIGHT,"-".join(names))
-    return labels,centroids,cluster,heatmap_fig.T,sizes,heatmap_shifted.T
+    return heatmap_fig,heatmap_shifted,sizes
 
 def t_sne(tot,nums,colors,names,dist='euclidean'):
     _=tot
@@ -180,25 +151,13 @@ def make_heatmap(phases,labels):
         if phases[i].T.shape[0] <= curr_count:
             #print(i,c,curr_count,phases[i].T.shape)
             curr_count=0
+        # print(i)
+        # print(phases[i].shape)
         b.append(phases[i].T[curr_count])
         curr_count+=1
         prev=i
     #print(counts)
     return np.array(b)
-
-def mse_scaled(a,b,scale=1):
-    #return scale*mse(a,b)
-    return 0
-    #return np.linalg.norm(a.flatten()-b.flatten(),ord=2)
-def norm_ssim(a,b,scale=1):
-    a1 = a-np.mean(a)
-    b1 = b-np.mean(b)
-    return one_minus(a1,b1)
-def one_minus(a,b):
-    r =max(np.max(a),np.max(b))-min(np.min(a),np.min(b))
-    #print(max(np.max(a),np.max(b)),min(np.min(a),np.min(b)))
-    return (1-ssim(a,b,data_range=r))
-
 
 def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,save=False,metric="euclidean"):
     # tot=np.append(np.append(heatmap1,centroid1,axis=0),np.append(heatmap2,centroid2,axis=0),axis=0)
@@ -218,9 +177,12 @@ def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,sa
     #     plt.show()
     hg = HeatmapGenerator()
     cl = Clustering()
-    phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
-    phase2 = cl.getRepresentativePhases(label2,COLLAPSE_FACTOR,heatmap2.T)
-    print(centroid1.shape,type(centroid1))
+    print(heatmap1.shape)
+    phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1)
+    print(label1)
+    #print(phase1)
+    #phase2 = cl.getRepresentativePhases(label2,COLLAPSE_FACTOR,heatmap2.T)
+    #print(centroid1.shape,type(centroid1))
     
     #label2 = [i if i != 90 else 94 for i in label2]
     print(list(label2))
@@ -239,81 +201,31 @@ def visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,label2,sa
     # b-=np.mean(b)
     print(np.std(b),np.std(heatmap2))
     prev= None
-    # for name in names:
-    #     hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps/{}'.format(name)
-    #     if os.path.exists(hm_path):
-    #         with open(hm_path,'rb') as f:
-    #             hm_matrix = pickle.load(f)
-    #     hm = np.sqrt(np.sqrt(hm_matrix))
-    #     shift = np.argmax(hm.T[0])
-        
-    #     #new = np.roll(hm.T,-shift).T
-    #     #new = np.array([np.roll(i,-np.argmax(i)) for i in hm.T]).T
-        
-    #     if prev:
-    #         print(hm.shape,shift,hm.T[0].shape, "prev: ",prev[0].shape,prev[2],prev[0].T[0].shape)
-    #         hg.compareHeatmaps((hm,prev[0],new,prev[1]),name2,False,titles=(name,name2,"o","sdf"),path=path,four=True)
-            
-    #     prev = (hm,new,shift)
+
     #hg.getHeatmapFigure((heatmap1.T),"axi")
     # cl.getClusterFigure(label2,b.T,COLLAPSE_FACTOR,HEIGHT,"test")
     # cl.getClusterFigure(label2,heatmap2,COLLAPSE_FACTOR,HEIGHT,"test")
-    hg.compareHeatmaps((heatmap2.T,b.T),name2,False,titles=('orig','frankenstein'),path=path)
+    hg.compareHeatmaps((np.sqrt(heatmap2),np.sqrt(b.T)),name2,False,titles=('orig','frankenstein'),path=path)
+    hg.getHeatmapFigure(phase1[22],"f")
+    for name in names:
+        hm_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/heatmaps/{}'.format(name)
+        if os.path.exists(hm_path):
+            with open(hm_path,'rb') as f:
+                hm_matrix = pickle.load(f)
+        hm = np.sqrt(np.sqrt(hm_matrix))
+        shift = np.argmax(hm.T[0])
+        
+        #new = np.roll(hm.T,-shift).T
+        new = np.array([np.roll(i,-np.argmax(i)) for i in hm.T]).T
+        arr = [np.argmax(i) for i in hm.T]
+        if prev:
+            print([i-prev[3][c] for c,i in enumerate(arr)])
+            print(hm.shape,shift,hm.T[0].shape, "prev: ",prev[0].shape,prev[2],prev[0].T[0].shape)
+            hg.compareHeatmaps((hm,prev[0],new,prev[1]),name2,False,titles=(name,name2,"o","sdf"),path=path,four=True)
+            
+        prev = (hm,new,shift,arr)
     # hg.getHeatmapFigure(heatmap2.T,"findmnt")
     # hg.getHeatmapFigure(b.T,"findmnt")
-    funcs = (norm_ssim,mse,one_minus)
-    # ssim(heatmap2,b)
-    metric_compare = [[i(heatmap2,b) for i in funcs],[i(heatmap2,np.zeros(heatmap2.shape)) for i in funcs],[ i(heatmap2,np.random.rand(heatmap2.shape[0],heatmap2.shape[1])) for i in funcs], [ i(b,np.random.rand(heatmap2.shape[0],heatmap2.shape[1])) for i in funcs]]
-    
-    # metric_compare = [[i(heatmap2,b),i(heatmap2,np.zeros(heatmap2.shape))] for c in enumerate(funcs)]
-    
-    print(metric_compare)
-    names = ['1-SSIM (Mean Centered Heatmap)','MSE','1-SSIM',]
-    labels = ['Frankenstein v Original','All White v Original','Random v Original','Random v Frankenstein']
-    title = 'Metric Comparison for '+name2
-    #make_bars(metric_compare,labels,names,title=title)
-    #plt.savefig(path+'/'+name2+'_metric_comparison.png')
-    #plt.show()
-    start = 670
-    end = 695
-    print(label2)
-    print(label2[start:end])
-    print(len(set(label2[start:end])))
-    prev = None
-    surroundings = set()
-    for i in label2[600:700]:
-        if prev != None and prev == 94:
-            surroundings.add(i)
-        if i == 94 and prev != None:
-            surroundings.add(prev)
-        prev=i
-    print(surroundings)
-    
-    # hg.compareHeatmaps([phase1[i] for i in set(label2[start:end])],name2,False,titles=[str(i) for i in set(label2[start:end])])
-    reshape_size = (HEIGHT,200)
-    # for i in surroundings:
-    #     hg.compareHeatmaps([resize(phase1[94],reshape_size),resize(phase1[i],reshape_size)],name2,False,titles=['94',str(i)])
-    # hg.compareHeatmaps([resize(phase1[94],reshape_size),resize(phase1[90],reshape_size)],name2,False,titles=['94','90'])
-    # print(len(phase1),len(phase2),len(set(label2)))
-    # print(set(label2))
-    # for c,i in enumerate(set(label2)):
-    #     print(c,i)
-    #     print(phase1[i].shape,phase2[c].shape)
-    #     a = phase1[i]#.reshape(-1,1)
-    #     b = phase2[c]#.reshape(-1,1)
-    #     reshape_size = (HEIGHT,200)
-    #     a = resize(a,reshape_size)
-    #     b = resize(b,reshape_size)
-    #     hg.compareHeatmaps(a**4,b**4,"cluster-"+str(i),save,"cluster-"+str(i),titles=("standard",name2),metric=metric)
-    print(label2)
-def p(s="",f=None,end="\n"):
-    if f == None:
-        print(s)
-    if f:
-        f.write(s+end)
-def shift(a):
-    darkest = np.argmax(a)
-    return np.roll(a,-darkest)
 
 def shift_and_score(a,b):
     darkest_b = np.argmax(a)
@@ -325,7 +237,7 @@ def shift_and_score(a,b):
     return np.linalg.norm(shifted-b)
 
 def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_file=None):
-    label1,centroid1,cluster1,heatmap1,size_names,_ = gen_cluster(names,k,False,dist=metric,verbose=verbose,method='kmeans')
+    heatmap1,heatmap_shifted1,size_names = gen_cluster(names,k,False,dist=metric,verbose=verbose,method='kmeans')
     f = None
     if log_file != None:
         f = open("./logs/"+log_file+".log",'w')
@@ -333,67 +245,53 @@ def gen(names,name2,k,metric='euclidean',save=False,viz=False,verbose=True,log_f
     # print(size_names)
     # print(sum(size_names),len(heatmap1))
     k2 = 8
-    label2,centroid2,cluster2,heatmap2,_,heatmap_shifted = gen_cluster(name2,k2,False,dist=metric,method='kmeans')
-    #print(heatmap1.shape,centroid1.shape,heatmap2.shape,centroid2.shape)
-    
-    #map_centroids,map_labels = calc_mapping(cluster1,centroid1,heatmap2,save=save)[0]
-    #knn = KNN(n_neighbors=11,metric=custom_score).fit(heatmap1,label1)
+    heatmap2,heatmap_shifted2,_= gen_cluster(name2,k2,False,dist=metric,method='kmeans')
     cl = Clustering()
-    phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
+    # phase1 = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
     #map_centroids = cluster1.predict(centroid2)
-    
-    #map_new_standard = knn.predict(heatmap2)
-    # map_new_standard = []
-    # print(heatmap2.shape)
-    # print(centroid1.shape)
-    # for i in heatmap2:
-    #     score = None
-    #     score_ind = 0
-    #     for c,j in enumerate(centroid1):
-    #         # print(i.shape,j.shape)
-    #         s = shift_and_score(j,i)
-    #         if score == None or s<score:
-    #             score = s
-    #             score_ind = c
-    #     map_new_standard.append(score_ind)
-            
-    # print(len(map_new_standard))
-    map_new_standard = cluster1.predict(heatmap_shifted)
-    
-    cluster_dict = {}
-    for c,i in enumerate(map_new_standard):
-        if i not in cluster_dict:
-            cluster_dict[i] = []
-        cluster_dict[i].append(euclidean_distances(centroid1[i].reshape(1,-1),heatmap2[c].reshape(1,-1)).item())
-    if save:
-        to_file(label1,names,size_names)
-        to_file(map_new_standard,name2)
+    print("Clustering...")
+    #print(cl_path)
+    print(heatmap_shifted1.shape)
+    cl_path = '/home/mkondapaneni/Research/tracewringing_phase_predict/clusters2/{}'.format("polytest2-"+name2+"-"+str(k)+"-"+str(WINDOW_SIZE))
+    if os.path.exists(cl_path):
+        with open(cl_path,'rb') as f:
+            clusters = pickle.load(f)
+        if verbose:
+            print("WARNING using cluster at " +cl_path)
+    else:         
         cl = Clustering()
-        rep_phases = cl.getRepresentativePhases(label1,COLLAPSE_FACTOR,heatmap1.T)
-        pickle.dump(rep_phases,open("phases.pkl",'wb'))
-        # pickle.dump(heatmap2,open(".pkl",'wb'))
-    if viz:
-        visualize(names,name2,heatmap1,centroid1,heatmap2,centroid2,label1,map_new_standard,False,metric)
-        plt.figure()
-    if f!=None:
-        f.close()
+        #print(heatmap.shape)
+        #print(heatmap_fig.shape,heatmap_shifted.shape)
+        # clusters = cl.kmeans(k,COLLAPSE_FACTOR,heatmap1)
+        c = hdbscan.HDBSCAN(prediction_data=True)
+        c.fit(heatmap1.T)
+        cent = None
+        clusters = (c.labels_,cent,c)
+
+        with open(cl_path, 'wb') as f:
+            pickle.dump(clusters,f)
+    labels,centroids,cluster = clusters
+
+    map_new_standard = cluster.approximate_predict(heatmap2.T)
+
+    visualize(names,name2,heatmap1,None,heatmap2,None,labels,map_new_standard,False,metric)
+    plt.figure()
+    # print(np.array_equal(heatmap_fig,heatmap.T))
+    # hg  = HeatmapGenerator()
+    # hg.compareHeatmaps(heatmap_fig,heatmap.T,"-".join(names))
+  
 
 # names = ["cat","cp","echo","findmnt","git","ls"]
 # name2 = "mkdir"
 name2 = "echo"
 names = ['cat','cp','findmnt','git','ls','mkdir']
-names = os.listdir('/home/mkondapaneni/Research/trace_src/bin')
-name2 = names[0]
-names = names[1:]
+# names = os.listdir('/home/mkondapaneni/Research/trace_src/bin')
+# name2 = names[0]
+# names = names[1]
 print(name2,names)
 
-# name2 = "findmnt"
-# names = ['cat','cp','echo','git','ls','mkdir']
-# name2 = "git"
-# names = ['cat','cp','echo','findmnt','ls','mkdir']
-# name2 = "ls"
-# names = ['cat','cp','echo','findmnt','git','mkdir']
-k=10
+
+k=60
 metric = 'euclidean'
 
 if __name__ == "__main__":
